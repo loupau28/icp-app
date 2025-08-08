@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import sqlite3
 
@@ -28,15 +28,15 @@ def init_db():
 # Routes HTML
 @app.route("/")
 def home():
-    return send_file("index.html")
+    return render_template("index.html")
 
 @app.route("/consultage")
 def consultage():
-    return send_file("Consultage.html")
+    return render_template("Consultage.html")
 
 @app.route("/renseignement")
 def renseignement():
-    return send_file("Renseignement ICP.html")
+    return render_template("Renseignement ICP.html")
 
 # API : Sauvegarde ICP
 @app.route("/save-icp", methods=["POST"])
