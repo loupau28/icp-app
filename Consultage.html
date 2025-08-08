@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultation ICP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('FOND.png') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      color: red;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    select, input, button {
+      margin: 10px 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    th, td {
+      border: 2px solid black;
+      padding: 10px;
+      text-align: center;
+    }
+
+    td {
+      background-color: #f2f2f2;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>CONSULTATION DES ICP ENREGISTRÉS</h2>
+
+  <div class="filters">
+    <label for="eap-filter">Filtrer par EAP :</label>
+    <select id="eap-filter" onchange="chargerICP()">
+      <option value="">Tous</option>
+      <option value="ADC BERNARD">ADC BERNARD</option>
+      <option value="ADC CRETIN">ADC CRETIN</option>
+      <option value="ADC VITTET">ADC VITTET</option>
+      <option value="ADJ THIBAULT">ADJ THIBAULT</option>
+      <option value="ADC LAMART">ADC LAMART</option>
+      <option value="SCH BONY">SCH BONY</option>
+      <option value="CCH REBIERRE">CCH REBIERRE</option>
+      <option value="CPL SKIRLO">CPL SKIRLO</option>
+    </select>
+
+    <label for="date-filter">Filtrer par date :</label>
+    <input type="date" id="date-filter" onchange="chargerICP()" />
+
+    <button onclick="chargerICP()">🔁 Rafraîchir</button>
+  </div>
+
+  <div id="tableau-container"></div>
+
+  <script>
+    function chargerICP() {
+      fetch("/get-icp")
+        .then(res => res.json())
+        .then(data => {
+          const eapFilter = document.getElementById("eap-filter").value;
+          const dateFilter = document.getElementById("date-filter").value;
+
+          const container = document.getElementById("tableau-container");
+
+          if (!data || data.length === 0) {
+            container.innerHTML = "<p>Aucun ICP enregistré.</p>";
+            return;
+          }
+
+          const filtres = data.filter(entry => {
+            const matchEAP = !eapFilter || entry.eap === eapFilter;
+            const matchDate = !dateFilter || formatDate(entry.date) === dateFilter;
+            return matchEAP && matchDate;
+          });
+
+          if (filtres.length === 0) {
+            container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
+            return;
+          }
+
+          let html = "<table><thead><tr>";
+          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
+          html += "</tr></thead><tbody>";
+
+          filtres.forEach(entry => {
+            html += `<tr>
+              <td>${entry.date}</td>
+              <td>${entry.eap}</td>
+              <td>${entry.nom}</td>
+              <td>${entry.pompes}</td>
+              <td>${entry.tractions}</td>
+              <td>${entry.killy}</td>
+              <td>${entry.gainage}</td>
+              <td>${entry.luc_leger}</td>
+              <td>${entry.souplesse}</td>
+            </tr>`;
+          });
+
+          html += "</tbody></table>";
+          container.innerHTML = html;
+        })
+        .catch(err => {
+          console.error("Erreur lors du chargement :", err);
+          alert("Impossible de charger les ICP.");
+        });
+    }
+
+    // Convertit la date française "dd/mm/yyyy" en format "yyyy-mm-dd"
+    function formatDate(dateStr) {
+      const parts = dateStr.split("/");
+      if (parts.length !== 3) return "";
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    }
+
+    // Charger automatiquement à l'ouverture de la page
+    window.onload = chargerICP;
+  </script>
+</body>
+</html>

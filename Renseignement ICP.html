@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('FOND.png') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      color: red;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+    }
+    th, td {
+      border: 2px solid black;
+      padding: 10px;
+      text-align: center;
+    }
+    td {
+      background-color: #f2f2f2;
+    }
+    td[contenteditable="true"] {
+      background-color: #fff;
+    }
+    input, button, select {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    #send-button {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>RENSEIGNEMENT DES ICP</h2>
+
+  <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <label for="EAP-select">Nom de l’EAP :</label>
+    <select id="EAP-select">
+      <option value="">Sélectionnez</option>
+      <option value="ADC BERNARD">ADC BERNARD EAP 2</option>
+      <option value="ADC CRETIN">ADC CRETIN EAP 2</option>
+      <option value="ADC VITTET">ADC VITTET EAP 2</option>
+      <option value="ADJ THIBAULT">ADJ THIBAULT EAP 2</option>
+      <option value="ADC LAMART">ADC LAMART EAP 1</option>
+      <option value="SCH BONY">SCH BONY EAP 1</option>
+      <option value="CCH REBIERRE">CCH REBIERRE EAP 1</option>
+      <option value="CPL SKIRLO">CPL SKIRLO EAP 1</option>
+    </select>
+
+    <label for="nombre">Nombre d’agents :</label>
+    <input type="number" id="nombre" min="1" max="12" />
+
+    <button onclick="genererTableau()">Générer le tableau</button>
+  </div>
+
+  <div id="tableau-container"></div>
+  <div id="send-button">
+    <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script>
+    emailjs.init("ZJ5lL9lyhjYLHetb8");
+
+    function genererTableau() {
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value);
+      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+
+      let html = "<table><thead><tr>";
+      colonnes.forEach(col => html += `<th>${col}</th>`);
+      html += "</tr></thead><tbody>";
+
+      for (let i = 0; i < nombre; i++) {
+        html += "<tr>";
+        colonnes.forEach((col, j) => {
+          if (j === 0) html += `<td contenteditable="true"></td>`;
+          else html += `<td><input type="number" min="0"/></td>`;
+        });
+        html += "</tr>";
+      }
+      html += "</tbody></table>";
+      container.innerHTML = html;
+      document.getElementById('send-button').style.display = 'block';
+    }
+
+    function envoyerEmailEtSauvegarder() {
+      const eap = document.getElementById("EAP-select").value;
+      const table = document.querySelector("table");
+      const rows = document.querySelectorAll("tbody tr");
+
+      const agents = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const nom = cells[0].innerText.trim();
+        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
+        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
+        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
+        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
+        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
+        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+
+        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+
+        // Remplacer les inputs par du texte dans l'aperçu email
+        for (let i = 1; i < cells.length; i++) {
+          const val = cells[i].querySelector("input")?.value || "";
+          cells[i].innerText = val;
+        }
+      });
+
+      const tableHTML = table.outerHTML;
+
+      emailjs.send("SOGTAVICP", "template_zsy9are", {
+        eap_name: eap,
+        table_html: tableHTML,
+        date_envoi: new Date().toLocaleDateString("fr-FR")
+      }).then(() => {
+        alert("Email envoyé !");
+      }).catch(err => {
+        alert("Erreur d'envoi email : " + err.text);
+      });
+
+      fetch("/save-icp", {
+
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eap: eap,
+          date: new Date().toLocaleDateString("fr-FR"),
+          agents: agents
+        })
+      }).then(res => res.json())
+        .then(data => console.log("Sauvegarde OK :", data))
+        .catch(err => console.error("Erreur de sauvegarde :", err));
+    }
+  </script>
+</body>
+</html>

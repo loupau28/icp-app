@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accueil ICP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('FOND.png') no-repeat center center fixed;
+      background-size: cover;
+      padding: 40px;
+      color: red;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 2.5em;
+      margin-bottom: 40px;
+      color: darkred;
+      text-shadow: 1px 1px white;
+    }
+
+    #menu {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: white;
+      border: 2px solid red;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Gestion des ICP</h2>
+
+  <div id="menu">
+    <button onclick="window.location.href='Renseignement ICP.html'">➕ Renseigner les ICP</button>
+    <button onclick="window.location.href='Consultage.html'">📊 Consulter les ICP</button>
+  </div>
+
+</body>
+</html>
