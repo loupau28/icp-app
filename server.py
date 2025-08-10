@@ -18,7 +18,7 @@ def init_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
-            date TEXT,
+            date DATE,
             eap TEXT,
             nom TEXT,
             pompes INTEGER,
@@ -47,7 +47,9 @@ def renseignement():
 
 @app.route("/save-icp", methods=["POST"])
 def save_icp():
+    try:
     data = request.get_json()
+     print("Données reçues dans /save-icp :", data)
     conn = get_db_connection()
     c = conn.cursor()
     for agent in data["agents"]:
@@ -63,6 +65,9 @@ def save_icp():
     c.close()
     conn.close()
     return jsonify({"status": "ok"})
+       except Exception as e:
+        print("Erreur save_icp:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get-icp', methods=['GET'])
 def get_icp():

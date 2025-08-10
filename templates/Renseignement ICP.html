@@ -98,24 +98,28 @@
       document.getElementById('send-button').style.display = 'block';
     }
 
-    function envoyerEmailEtSauvegarder() {
-      const eap = document.getElementById("EAP-select").value;
-      const table = document.querySelector("table");
-      const rows = document.querySelectorAll("tbody tr");
+ function envoyerEmailEtSauvegarder() {
+  const eap = document.getElementById("EAP-select").value;
+  const table = document.querySelector("table");
+  const rows = document.querySelectorAll("tbody tr");
 
-      const agents = [];
+  const agents = [];
 
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim();
-        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
-        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
-        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
-        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
-        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
-        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    const nom = cells[0].innerText.trim();
+    const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
+    const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
+    const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
+    const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
+    const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
+    const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
 
-        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+    agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+  });
+
+  console.log("Envoi ICP avec ces données :", { eap, date: new Date().toISOString().slice(0, 10), agents });
+
 
         // Remplacer les inputs par du texte dans l'aperçu email
         for (let i = 1; i < cells.length; i++) {
