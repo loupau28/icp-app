@@ -66,29 +66,33 @@ def save_icp():
 
 @app.route('/get-icp', methods=['GET'])
 def get_icp():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute('SELECT date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse FROM icp')
-    rows = c.fetchall()
-    c.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('SELECT date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse FROM icp')
+        rows = c.fetchall()
+        c.close()
+        conn.close()
 
-    results = []
-    for row in rows:
-        results.append({
-            'date': row[0],
-            'eap': row[1],
-            'nom': row[2],
-            'pompes': row[3],
-            'tractions': row[4],
-            'killy': row[5],
-            'gainage': row[6],
-            'luc_leger': row[7],
-            'souplesse': row[8]
-        })
+        results = []
+        for row in rows:
+            results.append({
+                'date': row[0],
+                'eap': row[1],
+                'nom': row[2],
+                'pompes': row[3],
+                'tractions': row[4],
+                'killy': row[5],
+                'gainage': row[6],
+                'luc_leger': row[7],
+                'souplesse': row[8]
+            })
+        return jsonify(results)
 
-    return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+   
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
