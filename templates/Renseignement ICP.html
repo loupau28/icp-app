@@ -75,30 +75,30 @@
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
-    function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+function genererTableau() {
+  const container = document.getElementById('tableau-container');
+  const nombre = parseInt(document.getElementById('nombre').value);
+  const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
+  let html = "<table><thead><tr>";
+  colonnes.forEach(col => html += `<th>${col}</th>`);
+  html += "</tr></thead><tbody>";
 
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) html += `<td contenteditable="true"></td>`;
-          else html += `<td><input type="number" min="0"/></td>`;
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table>";
-      container.innerHTML = html;
-      document.getElementById('send-button').style.display = 'block';
-    }
+  for (let i = 0; i < nombre; i++) {
+    html += "<tr>";
+    colonnes.forEach((col, j) => {
+      if (j === 0) html += `<td contenteditable="true"></td>`;
+      else html += `<td><input type="number" min="0"/></td>`;
+    });
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  container.innerHTML = html;
+  document.getElementById('send-button').style.display = 'block';
+}
 
- function envoyerEmailEtSauvegarder() {
+function envoyerEmailEtSauvegarder() {
   const eap = document.getElementById("EAP-select").value;
   const table = document.querySelector("table");
   const rows = document.querySelectorAll("tbody tr");
@@ -116,43 +116,39 @@
     const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
 
     agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+
+    // Remplacer les inputs par du texte dans l'aperçu email (dans chaque ligne)
+    for (let i = 1; i < cells.length; i++) {
+      const val = cells[i].querySelector("input")?.value || "";
+      cells[i].innerText = val;
+    }
   });
 
-  console.log("Envoi ICP avec ces données :", { eap, date: new Date().toISOString().slice(0, 10), agents });
+  const tableHTML = table.outerHTML;
 
+  emailjs.send("SOGTAVICP", "template_zsy9are", {
+    eap_name: eap,
+    table_html: tableHTML,
+    date_envoi: new Date().toLocaleDateString("fr-FR")
+  }).then(() => {
+    alert("Email envoyé !");
+  }).catch(err => {
+    alert("Erreur d'envoi email : " + err.text);
+  });
 
-        // Remplacer les inputs par du texte dans l'aperçu email
-        for (let i = 1; i < cells.length; i++) {
-          const val = cells[i].querySelector("input")?.value || "";
-          cells[i].innerText = val;
-        }
-      });
+  fetch("/save-icp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      eap: eap,
+      date: new Date().toISOString().slice(0, 10),
+      agents: agents
+    })
+  }).then(res => res.json())
+    .then(data => console.log("Sauvegarde OK :", data))
+    .catch(err => console.error("Erreur de sauvegarde :", err));
+}
 
-      const tableHTML = table.outerHTML;
-
-      emailjs.send("SOGTAVICP", "template_zsy9are", {
-        eap_name: eap,
-        table_html: tableHTML,
-        date_envoi: new Date().toLocaleDateString("fr-FR")
-      }).then(() => {
-        alert("Email envoyé !");
-      }).catch(err => {
-        alert("Erreur d'envoi email : " + err.text);
-      });
-
-      fetch("/save-icp", {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eap: eap,
-          date: new Date().toISOString().slice(0, 10),
-          agents: agents
-        })
-      }).then(res => res.json())
-        .then(data => console.log("Sauvegarde OK :", data))
-        .catch(err => console.error("Erreur de sauvegarde :", err));
-    }
   </script>
 </body>
 </html>
