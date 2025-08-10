@@ -117,3 +117,16 @@ def get_icp():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
+    
+    
+    @app.route("/test-db")
+def test_db():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return "Connexion réussie à la base de données !"
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Erreur de connexion : {e}", 500
+
