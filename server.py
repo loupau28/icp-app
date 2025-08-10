@@ -45,7 +45,7 @@ def consultage():
 def renseignement():
     return render_template("Renseignement ICP.html")
 
-@@app.route("/save-icp", methods=["POST"])
+@app.route("/save-icp", methods=["POST"])
 def save_icp():
     try:
         data = request.get_json()
