@@ -1,16 +1,23 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import sqlite3
+import psycopg2
+import os
 
 app = Flask(__name__)
 CORS(app)
 
+# 🔹 URL de connexion PostgreSQL (mettre la tienne ici ou en variable d'environnement)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:Eiffage.57E4@db.xqpqyksupvnqfvdybqdd.supabase.co:5432/postgres")
+
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
 def init_db():
-    conn = sqlite3.connect("icp.db")
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             date TEXT,
             eap TEXT,
             nom TEXT,
@@ -23,9 +30,9 @@ def init_db():
         )
     """)
     conn.commit()
+    c.close()
     conn.close()
 
-# Routes HTML
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -38,32 +45,32 @@ def consultage():
 def renseignement():
     return render_template("Renseignement ICP.html")
 
-# API : Sauvegarde ICP
 @app.route("/save-icp", methods=["POST"])
 def save_icp():
     data = request.get_json()
-    conn = sqlite3.connect("icp.db")
+    conn = get_db_connection()
     c = conn.cursor()
     for agent in data["agents"]:
         c.execute("""
             INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             data["date"], data["eap"], agent["nom"],
             agent["pompes"], agent["tractions"], agent["killy"],
             agent["gainage"], agent["luc_leger"], agent["souplesse"]
         ))
     conn.commit()
+    c.close()
     conn.close()
     return jsonify({"status": "ok"})
 
-# API : Consultation ICP
 @app.route('/get-icp', methods=['GET'])
 def get_icp():
-    conn = sqlite3.connect('icp.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse FROM icp')
-    rows = cursor.fetchall()
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('SELECT date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse FROM icp')
+    rows = c.fetchall()
+    c.close()
     conn.close()
 
     results = []
