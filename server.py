@@ -113,13 +113,9 @@ def get_icp():
         print(f"Erreur dans /get-icp : {e}")
         return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
 
-   
-if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
-    
-    
-    @app.route("/test-db")
+  # place cette fonction au même niveau d'indentation que les autres routes
+
+@app.route("/test-db")
 def test_db():
     try:
         conn = get_db_connection()
@@ -129,4 +125,10 @@ def test_db():
         import traceback
         traceback.print_exc()
         return f"Erreur de connexion : {e}", 500
+ 
+if __name__ == "__main__":
+    init_db()
+    app.run(debug=True)
+    
+
 
