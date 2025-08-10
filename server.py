@@ -90,7 +90,8 @@ def get_icp():
         return jsonify(results)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Erreur dans /get-icp : {e}")
+        return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
 
    
 if __name__ == "__main__":

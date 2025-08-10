@@ -79,57 +79,65 @@
   <div id="tableau-container"></div>
 
   <script>
-    function chargerICP() {
-      fetch("/get-icp")
-        .then(res => res.json())
-        .then(data => {
-          const eapFilter = document.getElementById("eap-filter").value;
-          const dateFilter = document.getElementById("date-filter").value;
+   function chargerICP() {
+  fetch("/get-icp")
+    .then(res => res.json())
+    .then(data => {
+      if (!Array.isArray(data)) {
+        console.error("Erreur API:", data);
+        alert("Erreur lors du chargement des ICP : " + (data.error || "Erreur inconnue"));
+        document.getElementById("tableau-container").innerHTML = "";
+        return;
+      }
 
-          const container = document.getElementById("tableau-container");
+      const eapFilter = document.getElementById("eap-filter").value;
+      const dateFilter = document.getElementById("date-filter").value;
 
-          if (!data || data.length === 0) {
-            container.innerHTML = "<p>Aucun ICP enregistré.</p>";
-            return;
-          }
+      const container = document.getElementById("tableau-container");
 
-          const filtres = data.filter(entry => {
-            const matchEAP = !eapFilter || entry.eap === eapFilter;
-            const matchDate = !dateFilter || formatDate(entry.date) === dateFilter;
-            return matchEAP && matchDate;
-          });
+      if (data.length === 0) {
+        container.innerHTML = "<p>Aucun ICP enregistré.</p>";
+        return;
+      }
 
-          if (filtres.length === 0) {
-            container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
-            return;
-          }
+      const filtres = data.filter(entry => {
+        const matchEAP = !eapFilter || entry.eap === eapFilter;
+        const matchDate = !dateFilter || formatDate(entry.date) === dateFilter;
+        return matchEAP && matchDate;
+      });
 
-          let html = "<table><thead><tr>";
-          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
-          html += "</tr></thead><tbody>";
+      if (filtres.length === 0) {
+        container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
+        return;
+      }
 
-          filtres.forEach(entry => {
-            html += `<tr>
-              <td>${entry.date}</td>
-              <td>${entry.eap}</td>
-              <td>${entry.nom}</td>
-              <td>${entry.pompes}</td>
-              <td>${entry.tractions}</td>
-              <td>${entry.killy}</td>
-              <td>${entry.gainage}</td>
-              <td>${entry.luc_leger}</td>
-              <td>${entry.souplesse}</td>
-            </tr>`;
-          });
+      let html = "<table><thead><tr>";
+      html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
+      html += "</tr></thead><tbody>";
 
-          html += "</tbody></table>";
-          container.innerHTML = html;
-        })
-        .catch(err => {
-          console.error("Erreur lors du chargement :", err);
-          alert("Impossible de charger les ICP.");
-        });
-    }
+      filtres.forEach(entry => {
+        html += `<tr>
+          <td>${entry.date}</td>
+          <td>${entry.eap}</td>
+          <td>${entry.nom}</td>
+          <td>${entry.pompes}</td>
+          <td>${entry.tractions}</td>
+          <td>${entry.killy}</td>
+          <td>${entry.gainage}</td>
+          <td>${entry.luc_leger}</td>
+          <td>${entry.souplesse}</td>
+        </tr>`;
+      });
+
+      html += "</tbody></table>";
+      container.innerHTML = html;
+    })
+    .catch(err => {
+      console.error("Erreur lors du chargement :", err);
+      alert("Impossible de charger les ICP.");
+    });
+}
+
 
     // Convertit la date française "dd/mm/yyyy" en format "yyyy-mm-dd"
     function formatDate(dateStr) {
