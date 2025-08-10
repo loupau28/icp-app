@@ -50,23 +50,37 @@ def save_icp():
     try:
         data = request.get_json()
         print("Données reçues dans /save-icp :", data)
+
+        if not data:
+            return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
+        
+        if "agents" not in data or not isinstance(data["agents"], list):
+            return jsonify({"status": "error", "message": "Format des agents incorrect"}), 400
+
         conn = get_db_connection()
+        print("Connexion DB OK")
         c = conn.cursor()
+
         for agent in data["agents"]:
+            print("Agent:", agent)
             c.execute("""
                 INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                data["date"], data["eap"], agent["nom"],
-                agent["pompes"], agent["tractions"], agent["killy"],
-                agent["gainage"], agent["luc_leger"], agent["souplesse"]
+                data.get("date"), data.get("eap"), agent.get("nom"),
+                agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
+                agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse")
             ))
+
         conn.commit()
         c.close()
         conn.close()
+
         return jsonify({"status": "ok"})
+
     except Exception as e:
-        print("Erreur save_icp:", e)
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
