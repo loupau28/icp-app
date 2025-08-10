@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
- background: url('/static/FOND.png') no-repeat center center fixed;
+      background: url('/static/FOND.png') no-repeat center center fixed;
       background-size: cover;
       padding: 20px;
       color: red;
@@ -79,71 +79,73 @@
   <div id="tableau-container"></div>
 
   <script>
-   function chargerICP() {
-  fetch("/get-icp")
-    .then(res => res.json())
-    .then(data => {
-      if (!Array.isArray(data)) {
-        console.error("Erreur API:", data);
-        alert("Erreur lors du chargement des ICP : " + (data.error || "Erreur inconnue"));
-        document.getElementById("tableau-container").innerHTML = "";
-        return;
-      }
+    function chargerICP() {
+      fetch("/get-icp")
+        .then(res => res.json())
+        .then(data => {
+          if (!Array.isArray(data)) {
+            console.error("Erreur API:", data);
+            alert("Erreur lors du chargement des ICP : " + (data.error || "Erreur inconnue"));
+            document.getElementById("tableau-container").innerHTML = "";
+            return;
+          }
 
-      const eapFilter = document.getElementById("eap-filter").value;
-      const dateFilter = document.getElementById("date-filter").value;
+          const eapFilter = document.getElementById("eap-filter").value;
+          const dateFilter = document.getElementById("date-filter").value;
 
-      const container = document.getElementById("tableau-container");
+          const container = document.getElementById("tableau-container");
 
-      if (data.length === 0) {
-        container.innerHTML = "<p>Aucun ICP enregistré.</p>";
-        return;
-      }
+          if (data.length === 0) {
+            container.innerHTML = "<p>Aucun ICP enregistré.</p>";
+            return;
+          }
 
-      const filtres = data.filter(entry => {
-        const matchEAP = !eapFilter || entry.eap === eapFilter;
-        const matchDate = !dateFilter || formatDate(entry.date) === dateFilter;
-        return matchEAP && matchDate;
-      });
+          const filtres = data.filter(entry => {
+            const matchEAP = !eapFilter || entry.eap === eapFilter;
+            const matchDate = !dateFilter || entry.date === dateFilter;
+            return matchEAP && matchDate;
+          });
 
-      if (filtres.length === 0) {
-        container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
-        return;
-      }
+          if (filtres.length === 0) {
+            container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
+            return;
+          }
 
-      let html = "<table><thead><tr>";
-      html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
-      html += "</tr></thead><tbody>";
+          let html = "<table><thead><tr>";
+          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
+          html += "</tr></thead><tbody>";
 
-      filtres.forEach(entry => {
-        html += `<tr>
-          <td>${entry.date}</td>
-          <td>${entry.eap}</td>
-          <td>${entry.nom}</td>
-          <td>${entry.pompes}</td>
-          <td>${entry.tractions}</td>
-          <td>${entry.killy}</td>
-          <td>${entry.gainage}</td>
-          <td>${entry.luc_leger}</td>
-          <td>${entry.souplesse}</td>
-        </tr>`;
-      });
+          filtres.forEach(entry => {
+            html += `<tr>
+              <td>${formatDateFr(entry.date)}</td>
+              <td>${entry.eap}</td>
+              <td>${entry.nom}</td>
+              <td>${entry.pompes}</td>
+              <td>${entry.tractions}</td>
+              <td>${entry.killy}</td>
+              <td>${entry.gainage}</td>
+              <td>${entry.luc_leger}</td>
+              <td>${entry.souplesse}</td>
+            </tr>`;
+          });
 
-      html += "</tbody></table>";
-      container.innerHTML = html;
-    })
-    .catch(err => {
-      console.error("Erreur lors du chargement :", err);
-      alert("Impossible de charger les ICP.");
-    });
-}
+          html += "</tbody></table>";
+          container.innerHTML = html;
+        })
+        .catch(err => {
+          console.error("Erreur lors du chargement :", err);
+          alert("Impossible de charger les ICP.");
+        });
+    }
 
-
-    // Convertit la date française "dd/mm/yyyy" en format "yyyy-mm-dd"
-    function formatDate(dateStr) {
-      const parts = dateStr.split("/");
-      if (parts.length !== 3) return "";
-      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    // Convertit la date ISO "yyyy-mm-dd" en format "dd/mm/yyyy"
+    function formatDateFr(dateStr) {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
     }
 
     // Charger automatiquement à l'ouverture de la page
