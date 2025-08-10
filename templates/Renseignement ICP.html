@@ -142,7 +142,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eap: eap,
-          date: new Date().toLocaleDateString("fr-FR"),
+          date: new Date().toISOString().slice(0, 10),
           agents: agents
         })
       }).then(res => res.json())
