@@ -45,29 +45,30 @@ def consultage():
 def renseignement():
     return render_template("Renseignement ICP.html")
 
-@app.route("/save-icp", methods=["POST"])
+@@app.route("/save-icp", methods=["POST"])
 def save_icp():
     try:
-    data = request.get_json()
-     print("Données reçues dans /save-icp :", data)
-    conn = get_db_connection()
-    c = conn.cursor()
-    for agent in data["agents"]:
-        c.execute("""
-            INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            data["date"], data["eap"], agent["nom"],
-            agent["pompes"], agent["tractions"], agent["killy"],
-            agent["gainage"], agent["luc_leger"], agent["souplesse"]
-        ))
-    conn.commit()
-    c.close()
-    conn.close()
-    return jsonify({"status": "ok"})
-       except Exception as e:
+        data = request.get_json()
+        print("Données reçues dans /save-icp :", data)
+        conn = get_db_connection()
+        c = conn.cursor()
+        for agent in data["agents"]:
+            c.execute("""
+                INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                data["date"], data["eap"], agent["nom"],
+                agent["pompes"], agent["tractions"], agent["killy"],
+                agent["gainage"], agent["luc_leger"], agent["souplesse"]
+            ))
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"status": "ok"})
+    except Exception as e:
         print("Erreur save_icp:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/get-icp', methods=['GET'])
 def get_icp():
