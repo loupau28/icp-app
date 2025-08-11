@@ -16,6 +16,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    # Ajout de la colonne grh
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -27,7 +28,8 @@ def init_db():
             killy INTEGER,
             gainage INTEGER,
             luc_leger INTEGER,
-            souplesse INTEGER
+            souplesse INTEGER,
+            grh BOOLEAN DEFAULT FALSE
         )
     """)
     conn.commit()
@@ -65,8 +67,8 @@ def save_icp():
         for agent in data["agents"]:
             print("Agent:", agent)
             c.execute("""
-                INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
             """, (
                 data.get("date"), data.get("eap"), agent.get("nom"),
                 agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
@@ -90,7 +92,7 @@ def get_icp():
     try:
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute('SELECT date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse FROM icp')
+        c.execute('SELECT id, date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh FROM icp')
         rows = c.fetchall()
         c.close()
         conn.close()
@@ -98,15 +100,17 @@ def get_icp():
         results = []
         for row in rows:
             results.append({
-                'date': row[0],
-                'eap': row[1],
-                'nom': row[2],
-                'pompes': row[3],
-                'tractions': row[4],
-                'killy': row[5],
-                'gainage': row[6],
-                'luc_leger': row[7],
-                'souplesse': row[8]
+                'id': row[0],
+                'date': row[1],
+                'eap': row[2],
+                'nom': row[3],
+                'pompes': row[4],
+                'tractions': row[5],
+                'killy': row[6],
+                'gainage': row[7],
+                'luc_leger': row[8],
+                'souplesse': row[9],
+                'grh': row[10]
             })
         return jsonify(results)
 
@@ -114,7 +118,34 @@ def get_icp():
         print(f"Erreur dans /get-icp : {e}")
         return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
 
-  # place cette fonction au même niveau d'indentation que les autres routes
+
+# 🔹 Nouvelle route pour mettre à jour les cases cochées
+@app.route("/update-grh", methods=["POST"])
+def update_grh():
+    try:
+        data = request.get_json()
+        ids = data.get("ids", [])
+
+        if not ids:
+            return jsonify({"success": False, "error": "Aucun ID reçu"}), 400
+
+        conn = get_db_connection()
+        c = conn.cursor()
+
+        # Met à jour tous les enregistrements dont l'id est dans la liste
+        c.execute("UPDATE icp SET grh = TRUE WHERE id = ANY(%s)", (ids,))
+        
+        conn.commit()
+        c.close()
+        conn.close()
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/test-db")
 def test_db():
@@ -130,6 +161,3 @@ def test_db():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
-    
-
-

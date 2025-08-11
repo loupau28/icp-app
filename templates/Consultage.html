@@ -12,45 +12,13 @@
       padding: 20px;
       color: red;
     }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    label {
-      font-weight: bold;
-      margin-right: 10px;
-    }
-
-    select, input, button {
-      margin: 10px 5px;
-      padding: 10px;
-      font-size: 16px;
-    }
-
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-      width: 100%;
-    }
-
-    th, td {
-      border: 2px solid black;
-      padding: 10px;
-      text-align: center;
-    }
-
-    td {
-      background-color: #f2f2f2;
-    }
-
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      align-items: center;
-      margin-bottom: 20px;
-    }
+    h2 { margin-bottom: 20px; }
+    label { font-weight: bold; margin-right: 10px; }
+    select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 2px solid black; padding: 10px; text-align: center; }
+    td { background-color: #f2f2f2; }
+    .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
   </style>
 </head>
 <body>
@@ -74,11 +42,14 @@
     <input type="date" id="date-filter" onchange="chargerICP()" />
 
     <button onclick="chargerICP()">🔁 Rafraîchir</button>
+    <button onclick="enregistrerGRH()">💾 Enregistrement dans GRH</button>
   </div>
 
   <div id="tableau-container"></div>
 
   <script>
+    let dataICP = []; // Pour stocker les données chargées
+
     function chargerICP() {
       fetch("/get-icp")
         .then(res => res.json())
@@ -90,15 +61,11 @@
             return;
           }
 
+          dataICP = data; // On stocke pour traitement futur
+
           const eapFilter = document.getElementById("eap-filter").value;
           const dateFilter = document.getElementById("date-filter").value;
-
           const container = document.getElementById("tableau-container");
-
-          if (data.length === 0) {
-            container.innerHTML = "<p>Aucun ICP enregistré.</p>";
-            return;
-          }
 
           const filtres = data.filter(entry => {
             const matchEAP = !eapFilter || entry.eap === eapFilter;
@@ -112,10 +79,10 @@
           }
 
           let html = "<table><thead><tr>";
-          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th>";
+          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th><th>GRH</th>";
           html += "</tr></thead><tbody>";
 
-          filtres.forEach(entry => {
+          filtres.forEach((entry, index) => {
             html += `<tr>
               <td>${formatDateFr(entry.date)}</td>
               <td>${entry.eap}</td>
@@ -126,6 +93,11 @@
               <td>${entry.gainage}</td>
               <td>${entry.luc_leger}</td>
               <td>${entry.souplesse}</td>
+              <td>
+                <input type="checkbox" 
+                  data-id="${entry.id}" 
+                  ${entry.grh ? "checked disabled" : ""}>
+              </td>
             </tr>`;
           });
 
@@ -138,7 +110,6 @@
         });
     }
 
-    // Convertit la date ISO "yyyy-mm-dd" en format "dd/mm/yyyy"
     function formatDateFr(dateStr) {
       if (!dateStr) return "";
       const d = new Date(dateStr);
@@ -148,7 +119,35 @@
       return `${day}/${month}/${year}`;
     }
 
-    // Charger automatiquement à l'ouverture de la page
+    function enregistrerGRH() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(:disabled):checked');
+      const ids = Array.from(checkboxes).map(cb => cb.getAttribute("data-id"));
+
+      if (ids.length === 0) {
+        alert("Aucune nouvelle case cochée à enregistrer.");
+        return;
+      }
+
+      fetch("/update-grh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids })
+      })
+      .then(res => res.json())
+      .then(resp => {
+        if (resp.success) {
+          alert("Enregistrement effectué avec succès !");
+          chargerICP(); // Rafraîchir le tableau
+        } else {
+          alert("Erreur lors de l'enregistrement : " + (resp.error || "Erreur inconnue"));
+        }
+      })
+      .catch(err => {
+        console.error("Erreur enregistrement :", err);
+        alert("Impossible d'enregistrer.");
+      });
+    }
+
     window.onload = chargerICP;
   </script>
 </body>
