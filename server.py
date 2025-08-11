@@ -129,10 +129,16 @@ def update_grh():
         if not ids:
             return jsonify({"success": False, "error": "Aucun ID reçu"}), 400
 
+        # ✅ Convertir les IDs en int
+        try:
+            ids = [int(i) for i in ids]
+        except ValueError:
+            return jsonify({"success": False, "error": "IDs invalides"}), 400
+
         conn = get_db_connection()
         c = conn.cursor()
 
-        # Met à jour tous les enregistrements dont l'id est dans la liste
+        # ✅ PostgreSQL attend un tableau d'entiers
         c.execute("UPDATE icp SET grh = TRUE WHERE id = ANY(%s)", (ids,))
         
         conn.commit()
