@@ -11,6 +11,12 @@ CORS(app)
 USERNAME = "EAP-TAV"
 PASSWORD = "EAP-TAV95"
 
+USERNAME_CONSULTAGE = "BFOR-TAV"
+PASSWORD_CONSULTAGE = "BFOR-TAV95"
+
+USERNAME_SOG = "SOG-TAV"
+PASSWORD_SOG = "SOG-TAV95"
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db_connection():
@@ -40,16 +46,28 @@ def init_db():
     conn.close()
 
 # --------- Authentification ----------
-@app.route("/login", methods=["GET", "POST"])
-def login():
+@app.route("/login_renseignement", methods=["GET", "POST"])
+def login_renseignement():
     error = None
     if request.method == "POST":
-        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
-            session["logged_in"] = True
+        if request.form["username"] == USERNAME_RENSEIGNEMENT and request.form["password"] == PASSWORD_RENSEIGNEMENT:
+            session["logged_in_renseignement"] = True
             return redirect(url_for("renseignement"))
         else:
             error = "Identifiants incorrects"
     return render_template("login.html", error=error)
+
+@app.route("/login_consultage", methods=["GET", "POST"])
+def login_consultage():
+    error = None
+    if request.method == "POST":
+        if request.form["username"] == USERNAME_CONSULTAGE and request.form["password"] == PASSWORD_CONSULTAGE:
+            session["logged_in_consultage"] = True
+            return redirect(url_for("consultage"))
+        else:
+            error = "Identifiants incorrects"
+    return render_template("login.html", error=error)
+
 
 @app.route("/logout")
 def logout():
@@ -61,15 +79,18 @@ def logout():
 def home():
     return render_template("index.html")
 
-@app.route("/consultage")
-def consultage():
-    return render_template("Consultage.html")
-
 @app.route("/renseignement")
 def renseignement():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
+    if not session.get("logged_in_renseignement"):
+        return redirect(url_for("login_renseignement"))
     return render_template("Renseignement ICP.html")
+
+@app.route("/consultage")
+def consultage():
+    if not session.get("logged_in_consultage"):
+        return redirect(url_for("login_consultage"))
+    return render_template("Consultage.html")
+
 
 
 
