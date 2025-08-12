@@ -81,20 +81,17 @@ def home():
 
 @app.route("/renseignement")
 def renseignement():
-    if not session.get("logged_in_renseignement"):
-        return redirect(url_for("login_renseignement"))
+    if not session.get("logged_in_renseignement"): 
         session.pop("logged_in_renseignement", None)
-    return render_template("Renseignement ICP.html")
+        return redirect(url_for("login_renseignement"))
+           return render_template("Renseignement ICP.html")
 
 @app.route("/consultage")
 def consultage():
     if not session.get("logged_in_consultage"):
-        return redirect(url_for("login_consultage"))
         session.pop("logged_in_consultage", None)
-    return render_template("Consultage.html")
-
-
-
+        return redirect(url_for("login_consultage"))
+       return render_template("Consultage.html")
 
 
 @app.route("/save-icp", methods=["POST"])
