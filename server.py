@@ -1,12 +1,16 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 import psycopg2
 import os
 
 app = Flask(__name__)
+app.secret_key = "cle_ultra_secrete_a_changer"  # Obligatoire pour que la session marche
 CORS(app)
 
-# 🔹 URL de connexion PostgreSQL (mettre la tienne ici ou en variable d'environnement)
+# Identifiants
+USERNAME = "EAP-TAV"
+PASSWORD = "EAP-TAV95"
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db_connection():
@@ -16,7 +20,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # Ajout de la colonne grh
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -36,6 +39,24 @@ def init_db():
     c.close()
     conn.close()
 
+# --------- Authentification ----------
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("renseignement"))
+        else:
+            error = "Identifiants incorrects"
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+# --------- Routes protégées ----------
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -46,7 +67,12 @@ def consultage():
 
 @app.route("/renseignement")
 def renseignement():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
     return render_template("Renseignement ICP.html")
+
+
+
 
 @app.route("/save-icp", methods=["POST"])
 def save_icp():
