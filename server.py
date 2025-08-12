@@ -83,12 +83,14 @@ def home():
 def renseignement():
     if not session.get("logged_in_renseignement"):
         return redirect(url_for("login_renseignement"))
+        session.pop("logged_in_renseignement", None)
     return render_template("Renseignement ICP.html")
 
 @app.route("/consultage")
 def consultage():
     if not session.get("logged_in_consultage"):
         return redirect(url_for("login_consultage"))
+        session.pop("logged_in_consultage", None)
     return render_template("Consultage.html")
 
 
@@ -99,8 +101,6 @@ def consultage():
 def save_icp():
     try:
         data = request.get_json()
-        print("Données reçues dans /save-icp :", data)
-
         if not data:
             return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
         
@@ -108,19 +108,44 @@ def save_icp():
             return jsonify({"status": "error", "message": "Format des agents incorrect"}), 400
 
         conn = get_db_connection()
-        print("Connexion DB OK")
         c = conn.cursor()
 
         for agent in data["agents"]:
-            print("Agent:", agent)
-            c.execute("""
-                INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-            """, (
-                data.get("date"), data.get("eap"), agent.get("nom"),
-                agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
-                agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse")
-            ))
+            nom = agent.get("nom")
+            # Vérifier si l'agent existe déjà
+            c.execute("SELECT id FROM icp WHERE nom = %s", (nom,))
+            result = c.fetchone()
+
+            if result:
+                # L'agent existe, on met à jour
+                c.execute("""
+                    UPDATE icp SET
+                        date = %s,
+                        eap = %s,
+                        pompes = %s,
+                        tractions = %s,
+                        killy = %s,
+                        gainage = %s,
+                        luc_leger = %s,
+                        souplesse = %s,
+                        grh = FALSE
+                    WHERE nom = %s
+                """, (
+                    data.get("date"), data.get("eap"),
+                    agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
+                    agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse"),
+                    nom
+                ))
+            else:
+                # Sinon on insère
+                c.execute("""
+                    INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                """, (
+                    data.get("date"), data.get("eap"), nom,
+                    agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
+                    agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse")
+                ))
 
         conn.commit()
         c.close()
