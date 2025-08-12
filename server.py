@@ -8,8 +8,8 @@ app.secret_key = "cle_ultra_secrete_a_changer"  # Obligatoire pour que la sessio
 CORS(app)
 
 # Identifiants
-USERNAME = "EAP-TAV"
-PASSWORD = "EAP-TAV95"
+USERNAME_RENSEIGNEMENT = "EAP-TAV"
+PASSWORD_RENSEIGNEMENT = "EAP-TAV95"
 
 USERNAME_CONSULTAGE = "BFOR-TAV"
 PASSWORD_CONSULTAGE = "BFOR-TAV95"
