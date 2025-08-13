@@ -173,7 +173,7 @@ function envoyerEmailEtSauvegarder(type) {
     alert("Erreur d'envoi email : " + err.text);
   });
 
-  fetch(`/save-${type}`, {
+ fetch(`/save-${type.toLowerCase()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -181,10 +181,8 @@ function envoyerEmailEtSauvegarder(type) {
       date: new Date().toISOString().slice(0, 10),
       agents: agents
     })
-  }).then(res => res.json())
-    .then(data => console.log("Sauvegarde OK :", data))
-    .catch(err => console.error("Erreur de sauvegarde :", err));
-}
+})
+
 
 </script>
 
