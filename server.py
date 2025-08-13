@@ -83,6 +83,12 @@ def require_auth(role):
     return True
 
 # -------------------- ROUTES --------------------
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
 @app.route("/renseignement")
 def renseignement_page():
     auth = require_auth("renseignement")
