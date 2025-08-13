@@ -85,7 +85,7 @@ def login_consultage():
     return render_template("login.html", error=error)
 
 @app.route("/login_renseignementgssi", methods=["GET", "POST"])
-def login_renseignement():
+def login_renseignementgssi():
     error = None
     if request.method == "POST":
         if request.form["username"] == USERNAME_SOG and request.form["password"] == PASSWORD_SOG:
