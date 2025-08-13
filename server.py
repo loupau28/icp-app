@@ -1,20 +1,22 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify
+from flask import Flask, request, render_template, redirect, url_for, jsonify, session
 from flask_cors import CORS
 import psycopg2
 import os
 
 app = Flask(__name__)
 CORS(app)
+app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key")  # Pour sessions
 
-# Identifiants
+# -------------------- IDENTIFIANTS --------------------
 USERS = {
     "renseignement": {"username": "EAP-TAV", "password": "EAP-TAV95"},
     "consultage": {"username": "BFOR-TAV", "password": "BFOR-TAV95"},
     "gssi": {"username": "SOG-TAV", "password": "SOG-TAV95"}
 }
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.environ.get("DATABASE_URL")  # Exemple : postgres://user:pass@host/db
 
+# -------------------- BDD --------------------
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, sslmode="require")
     return conn
@@ -22,7 +24,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # Table ICP
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -38,7 +39,6 @@ def init_db():
             grh BOOLEAN DEFAULT FALSE
         )
     """)
-    # Table GSSI
     c.execute("""
         CREATE TABLE IF NOT EXISTS gssi (
             id SERIAL PRIMARY KEY,
@@ -64,41 +64,43 @@ def login():
         password = request.form.get("password")
         for role, creds in USERS.items():
             if username == creds["username"] and password == creds["password"]:
-                return redirect(url_for(f"{role}_page", username=username, password=password))
+                session["logged_in"] = True
+                session["role"] = role
+                session["username"] = username
+                return redirect(url_for(f"{role}_page"))
         error = "Identifiants incorrects"
     return render_template("login.html", error=error)
 
-# -------------------- PROTECTION "BASIC AUTH STYLE" --------------------
-def check_auth(username, password, role):
-    creds = USERS.get(role)
-    return creds and username == creds["username"] and password == creds["password"]
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
+# -------------------- PROTECTION --------------------
 def require_auth(role):
-    username = request.args.get("username")
-    password = request.args.get("password")
-    if not check_auth(username, password, role):
+    if not session.get("logged_in") or session.get("role") != role:
         return redirect(url_for("login"))
-    return username, password
+    return True
 
 # -------------------- ROUTES --------------------
 @app.route("/renseignement")
 def renseignement_page():
     auth = require_auth("renseignement")
-    if isinstance(auth, tuple):
-        return render_template("Renseignement ICP.html")  # page ICP
-    return auth  # redirect vers login
+    if auth is True:
+        return render_template("Renseignement ICP.html")
+    return auth
 
 @app.route("/consultage")
 def consultage_page():
     auth = require_auth("consultage")
-    if isinstance(auth, tuple):
+    if auth is True:
         return render_template("Consultage.html")
     return auth
 
 @app.route("/gssi")
 def gssi_page():
     auth = require_auth("gssi")
-    if isinstance(auth, tuple):
+    if auth is True:
         return render_template("Renseignement GSSI.html")
     return auth
 
@@ -109,10 +111,8 @@ def save_icp():
         data = request.get_json()
         if not data or "agents" not in data:
             return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
-
         conn = get_db_connection()
         c = conn.cursor()
-
         for agent in data["agents"]:
             nom = agent.get("nom")
             c.execute("SELECT id FROM icp WHERE nom = %s", (nom,))
@@ -175,16 +175,13 @@ def save_gssi():
         data = request.get_json()
         if not data or "agents" not in data:
             return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
-
         conn = get_db_connection()
         c = conn.cursor()
-
         for agent in data["agents"]:
             nom = agent.get("nom")
             psc = bool(agent.get("psc"))
             crochet = bool(agent.get("crochet"))
             excavation = bool(agent.get("excavation"))
-
             c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
             result = c.fetchone()
             if result:
@@ -226,7 +223,7 @@ def get_gssi():
         print(e)
         return jsonify([])
 
-# -------------------- Lancement --------------------
+# -------------------- LANCEMENT --------------------
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
