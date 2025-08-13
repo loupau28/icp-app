@@ -120,7 +120,7 @@ def consultage():
     return render_template("Consultage.html")
 
 @app.route("/renseignementgssi")
-def renseignement():
+def renseignementgssi():
     if not session.get("logged_in_renseignementgssi"): 
         session.pop("logged_in_renseignementgssi", None)
         return redirect(url_for("login_renseignementgssi"))
