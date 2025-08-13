@@ -65,10 +65,17 @@ def login(role):
         password = request.form.get("password")
         creds = USERS[role]
         if username == creds["username"] and password == creds["password"]:
-            return redirect(url_for(f"{role}_page"))
+            # Affiche directement la page du rôle
+            if role == "renseignement":
+                return render_template("Renseignement ICP.html")
+            elif role == "consultage":
+                return render_template("Consultage.html")
+            elif role == "gssi":
+                return render_template("Renseignement GSSI.html")
         else:
             error = "Identifiants incorrects"
     return render_template("login.html", error=error, role=role)
+
 
 # -------------------- ROUTES --------------------
 @app.route("/")
@@ -86,6 +93,7 @@ def consultage_page():
 @app.route("/gssi")
 def gssi_page():
     return redirect(url_for("login", role="gssi"))
+
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
