@@ -166,14 +166,15 @@ function envoyerEmailEtSauvegarder(type) {
     eap_name: eap,
     table_html: tableHTML,
     date_envoi: new Date().toLocaleDateString("fr-FR"),
-    type_resultat: type // "ICP" ou "GSSI"
+    type_resultat: type
   }).then(() => {
     alert(`Email ${type} envoyé !`);
   }).catch(err => {
     alert("Erreur d'envoi email : " + err.text);
   });
 
- fetch(`/save-${type.toLowerCase()}`, {
+  // 🔹 Correct fetch avec then/catch
+  fetch(`/save-${type.toLowerCase()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -181,8 +182,15 @@ function envoyerEmailEtSauvegarder(type) {
       date: new Date().toISOString().slice(0, 10),
       agents: agents
     })
-})
-
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Sauvegarde OK :", data);
+  })
+  .catch(err => {
+    console.error("Erreur de sauvegarde :", err);
+  });
+}
 
 </script>
 
