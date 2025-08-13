@@ -26,6 +26,8 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    
+     # Table ICP
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -38,6 +40,20 @@ def init_db():
             gainage INTEGER,
             luc_leger INTEGER,
             souplesse INTEGER,
+            grh BOOLEAN DEFAULT FALSE
+        )
+    """)
+    
+     # Table GSSI
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS gssi (
+            id SERIAL PRIMARY KEY,
+            date DATE,
+            eap TEXT,
+            nom TEXT,
+            psc INTEGER,
+            crochet INTEGER,
+            excavation INTEGER,
             grh BOOLEAN DEFAULT FALSE
         )
     """)
@@ -68,6 +84,16 @@ def login_consultage():
             error = "Identifiants incorrects"
     return render_template("login.html", error=error)
 
+@app.route("/login_renseignementgssi", methods=["GET", "POST"])
+def login_renseignement():
+    error = None
+    if request.method == "POST":
+        if request.form["username"] == USERNAME_SOG and request.form["password"] == PASSWORD_SOG:
+            session["logged_in_renseignementgssi"] = True
+            return redirect(url_for("renseignementgssi"))
+        else:
+            error = "Identifiants incorrects"
+    return render_template("login.html", error=error)
 
 @app.route("/logout")
 def logout():
@@ -93,7 +119,13 @@ def consultage():
         return redirect(url_for("login_consultage"))
     return render_template("Consultage.html")
 
-
+@app.route("/renseignementgssi")
+def renseignement():
+    if not session.get("logged_in_renseignementgssi"): 
+        session.pop("logged_in_renseignementgssi", None)
+        return redirect(url_for("login_renseignementgssi"))
+    return render_template("Renseignement GSSI.html")
+    
 @app.route("/save-icp", methods=["POST"])
 def save_icp():
     try:
@@ -221,6 +253,89 @@ def update_grh():
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/save-gssi", methods=["POST"])
+def save_gssi():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
+        
+        if "agents" not in data or not isinstance(data["agents"], list):
+            return jsonify({"status": "error", "message": "Format des agents incorrect"}), 400
+
+        conn = get_db_connection()
+        c = conn.cursor()
+
+        for agent in data["agents"]:
+            nom = agent.get("nom")
+            # Vérifier si l'agent existe déjà
+            c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
+            result = c.fetchone()
+
+            if result:
+                # L'agent existe, on met à jour
+                c.execute("""
+                    UPDATE gssi SET
+                        date = %s,
+                        eap = %s,
+                        psc = %s,
+                        crochet = %s,
+                        excavation = %s,
+                        grh = FALSE
+                    WHERE nom = %s
+                """, (
+                    data.get("date"), data.get("eap"),
+                    agent.get("psc"), agent.get("crochet"), agent.get("excavation"),
+                    nom
+                ))
+            else:
+                # Sinon on insère
+                c.execute("""
+                    INSERT INTO gssi (date, eap, nom, psc, crochet, excavation, grh)
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                """, (
+                    data.get("date"), data.get("eap"), nom,
+                    agent.get("psc"), agent.get("crochet"), agent.get("excavation")
+                ))
+
+        conn.commit()
+        c.close()
+        conn.close()
+
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get-gssi', methods=['GET'])
+def get_gssi():
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('SELECT id, date, eap, nom, psc, crochet, excavation, grh FROM gssi')
+        rows = c.fetchall()
+        c.close()
+        conn.close()
+
+        results = []
+        for row in rows:
+            results.append({
+                'id': row[0],
+                'date': row[1],
+                'eap': row[2],
+                'nom': row[3],
+                'psc': row[4],
+                'crochet': row[5],
+                'excavation': row[6],
+                'grh': row[7]
+            })
+        return jsonify(results)
+
+    except Exception as e:
+        print(f"Erreur dans /get-gssi : {e}")
+        return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
 
 @app.route("/test-db")
 def test_db():

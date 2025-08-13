@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ICP</title>
+  <title>GSSI</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-     background: url('/static/FOND.png') no-repeat center center fixed;
-      background-size: cover;
-      padding: 20px;
-      color: red;
+  
+   body {
+  font-family: Arial, sans-serif;
+  background: url('/static/fond2.png') no-repeat center center fixed;
+  background-size: cover;
+  padding: 20px;
+  color: red;
+}
+
     }
     table {
       border-collapse: collapse;
@@ -44,20 +47,18 @@
   </style>
 </head>
 <body>
-  <h2>RENSEIGNEMENT DES ICP</h2>
+  <h2>RENSEIGNEMENT DES GSSI</h2>
 
   <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-    <label for="EAP-select">Nom de l’EAP :</label>
-    <select id="EAP-select">
+    <label for="SOG-select">Nom du SOG :</label>
+    <select id="SOG-select">
       <option value="">Sélectionnez</option>
-      <option value="ADC BERNARD">ADC BERNARD EAP 2</option>
-      <option value="ADC CRETIN">ADC CRETIN EAP 2</option>
-      <option value="ADC VITTET">ADC VITTET EAP 2</option>
-      <option value="ADJ THIBAULT">ADJ THIBAULT EAP 2</option>
-      <option value="ADC LAMART">ADC LAMART EAP 1</option>
-      <option value="SCH BONY">SCH BONY EAP 1</option>
-      <option value="CCH REBIERRE">CCH REBIERRE EAP 1</option>
-      <option value="CPL SKIRLO">CPL SKIRLO EAP 1</option>
+        <option value="ADC CRETIN">ADC CRETIN </option>
+        <option value="ADC VITTET">ADC VITTET</option>
+        <option value="ADC VITTET">ADC DETAILLE</option>
+		<option value="ADC VITTET">ADC POUSSIN</option>
+	    <option value="ADC VITTET">ADC GAUDET</option>
+		<option value="ADC VITTET">ADC TRAVERT</option>
     </select>
 
     <label for="nombre">Nombre d’agents :</label>
@@ -68,7 +69,7 @@
 
   <div id="tableau-container"></div>
   <div id="send-button">
-    <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
+    <button onclick="envoyerEmailEtSauvegarder('GSSI')">ENVOYER GSSI</button>
 	<button onclick="window.location.href='/'">RETOUR</button>
 
   </div>
@@ -80,7 +81,7 @@
 function genererTableau() {
   const container = document.getElementById('tableau-container');
   const nombre = parseInt(document.getElementById('nombre').value);
-  const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
   if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
   let html = "<table><thead><tr>";
@@ -90,8 +91,11 @@ function genererTableau() {
   for (let i = 0; i < nombre; i++) {
     html += "<tr>";
     colonnes.forEach((col, j) => {
-      if (j === 0) html += `<td contenteditable="true"></td>`;
-      else html += `<td><input type="number" min="0"/></td>`;
+      if (j === 0) {
+        html += `<td contenteditable="true"></td>`;
+      } else {
+        html += `<td><input type="checkbox"/></td>`;
+      }
     });
     html += "</tr>";
   }
@@ -103,28 +107,23 @@ function genererTableau() {
 function ajouterStylesTable(table) {
   table.style.borderCollapse = "collapse";
   table.style.width = "100%";
-
-  // Styles pour chaque <th>
   table.querySelectorAll("th").forEach(th => {
     th.style.border = "2px solid black";
     th.style.padding = "10px";
     th.style.textAlign = "center";
     th.style.backgroundColor = "#f2f2f2";
   });
-
-  // Styles pour chaque <td>
   table.querySelectorAll("td").forEach(td => {
     td.style.border = "2px solid black";
     td.style.padding = "10px";
     td.style.textAlign = "center";
     td.style.backgroundColor = "#f2f2f2";
   });
-
   return table.outerHTML;
 }
 
-function envoyerEmailEtSauvegarder() {
-  const eap = document.getElementById("EAP-select").value;
+function envoyerEmailEtSauvegarder(type) {
+  const eap = document.getElementById("SOG-select").value;
   const table = document.querySelector("table");
   const rows = document.querySelectorAll("tbody tr");
 
@@ -133,37 +132,32 @@ function envoyerEmailEtSauvegarder() {
   rows.forEach(row => {
     const cells = row.querySelectorAll("td");
     const nom = cells[0].innerText.trim();
-    const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
-    const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
-    const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
-    const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
-    const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
-    const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+    const psc = cells[1].querySelector("input")?.checked ? 1 : 0;
+    const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
+    const excavation = cells[3].querySelector("input")?.checked ? 1 : 0;
 
-    agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+    agents.push({ nom, psc, crochet, excavation });
 
-    // Remplacer les inputs par du texte dans l'aperçu email (dans chaque ligne)
-    for (let i = 1; i < cells.length; i++) {
-      const val = cells[i].querySelector("input")?.value || "";
-      cells[i].innerText = val;
-    }
+    cells[1].innerText = psc ? "Oui" : "Non";
+    cells[2].innerText = crochet ? "Oui" : "Non";
+    cells[3].innerText = excavation ? "Oui" : "Non";
   });
 
-  // Cloner le tableau pour ne pas modifier celui de la page et injecter les styles inline
   const tableClone = table.cloneNode(true);
   const tableHTML = ajouterStylesTable(tableClone);
 
   emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
     eap_name: eap,
     table_html: tableHTML,
-    date_envoi: new Date().toLocaleDateString("fr-FR")
+    date_envoi: new Date().toLocaleDateString("fr-FR"),
+    type_resultat: type // "ICP" ou "GSSI"
   }).then(() => {
-    alert("Email envoyé !");
+    alert(`Email ${type} envoyé !`);
   }).catch(err => {
     alert("Erreur d'envoi email : " + err.text);
   });
 
-  fetch("/save-icp", {
+  fetch(`/save-${type}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -176,7 +170,7 @@ function envoyerEmailEtSauvegarder() {
     .catch(err => console.error("Erreur de sauvegarde :", err));
 }
 
+</script>
 
-  </script>
 </body>
 </html>
