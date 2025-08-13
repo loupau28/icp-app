@@ -1,11 +1,10 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify, session
+from flask import Flask, request, render_template, redirect, url_for, jsonify
 from flask_cors import CORS
 import psycopg2
 import os
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key")  # Pour sessions
 
 # -------------------- IDENTIFIANTS --------------------
 USERS = {
@@ -56,59 +55,37 @@ def init_db():
     conn.close()
 
 # -------------------- LOGIN --------------------
-@app.route("/login", methods=["GET", "POST"])
-def login():
+@app.route("/login/<role>", methods=["GET", "POST"])
+def login(role):
+    if role not in USERS:
+        return "Rôle invalide", 400
     error = None
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        for role, creds in USERS.items():
-            if username == creds["username"] and password == creds["password"]:
-                session["logged_in"] = True
-                session["role"] = role
-                session["username"] = username
-                return redirect(url_for(f"{role}_page"))
-        error = "Identifiants incorrects"
-    return render_template("login.html", error=error)
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-# -------------------- PROTECTION --------------------
-def require_auth(role):
-    if not session.get("logged_in") or session.get("role") != role:
-        return redirect(url_for("login"))
-    return True
+        creds = USERS[role]
+        if username == creds["username"] and password == creds["password"]:
+            return redirect(url_for(f"{role}_page"))
+        else:
+            error = "Identifiants incorrects"
+    return render_template("login.html", error=error, role=role)
 
 # -------------------- ROUTES --------------------
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 @app.route("/renseignement")
 def renseignement_page():
-    auth = require_auth("renseignement")
-    if auth is True:
-        return render_template("Renseignement ICP.html")
-    return auth
+    return redirect(url_for("login", role="renseignement"))
 
 @app.route("/consultage")
 def consultage_page():
-    auth = require_auth("consultage")
-    if auth is True:
-        return render_template("Consultage.html")
-    return auth
+    return redirect(url_for("login", role="consultage"))
 
 @app.route("/gssi")
 def gssi_page():
-    auth = require_auth("gssi")
-    if auth is True:
-        return render_template("Renseignement GSSI.html")
-    return auth
+    return redirect(url_for("login", role="gssi"))
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
