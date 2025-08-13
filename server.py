@@ -1,13 +1,13 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, Response
 from flask_cors import CORS
 import psycopg2
 import os
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = "cle_ultra_secrete_a_changer"  # Obligatoire pour que la session marche
 CORS(app)
 
-# Identifiants
+# -------- Identifiants --------
 USERNAME_RENSEIGNEMENT = "EAP-TAV"
 PASSWORD_RENSEIGNEMENT = "EAP-TAV95"
 
@@ -19,6 +19,7 @@ PASSWORD_SOG = "SOG-TAV95"
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# -------- DB connection --------
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, sslmode="require")
     return conn
@@ -26,8 +27,8 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    
-     # Table ICP
+
+    # Table ICP
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -44,16 +45,16 @@ def init_db():
         )
     """)
     
-     # Table GSSI
+    # Table GSSI
     c.execute("""
         CREATE TABLE IF NOT EXISTS gssi (
             id SERIAL PRIMARY KEY,
             date DATE,
             eap TEXT,
             nom TEXT,
-            psc INTEGER,
-            crochet INTEGER,
-            excavation INTEGER,
+            psc BOOLEAN,
+            crochet BOOLEAN,
+            excavation BOOLEAN,
             grh BOOLEAN DEFAULT FALSE
         )
     """)
@@ -61,79 +62,64 @@ def init_db():
     c.close()
     conn.close()
 
-# --------- Authentification ----------
-@app.route("/login_renseignement", methods=["GET", "POST"])
-def login_renseignement():
-    error = None
-    if request.method == "POST":
-        if request.form["username"] == USERNAME_RENSEIGNEMENT and request.form["password"] == PASSWORD_RENSEIGNEMENT:
-            session["logged_in_renseignement"] = True
-            return redirect(url_for("renseignement"))
-        else:
-            error = "Identifiants incorrects"
-    return render_template("login.html", error=error)
+# -------- Basic Auth helpers --------
+def check_auth(username, password, role=None):
+    """Vérifie le couple username/password selon le rôle"""
+    if role == "renseignement":
+        return username == USERNAME_RENSEIGNEMENT and password == PASSWORD_RENSEIGNEMENT
+    elif role == "consultage":
+        return username == USERNAME_CONSULTAGE and password == PASSWORD_CONSULTAGE
+    elif role == "gssi":
+        return username == USERNAME_SOG and password == PASSWORD_SOG
+    return False
 
-@app.route("/login_consultage", methods=["GET", "POST"])
-def login_consultage():
-    error = None
-    if request.method == "POST":
-        if request.form["username"] == USERNAME_CONSULTAGE and request.form["password"] == PASSWORD_CONSULTAGE:
-            session["logged_in_consultage"] = True
-            return redirect(url_for("consultage"))
-        else:
-            error = "Identifiants incorrects"
-    return render_template("login.html", error=error)
+def authenticate():
+    """Renvoie 401 si non authentifié"""
+    return Response(
+        'Authentification requise', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'}
+    )
 
-@app.route("/login_renseignementgssi", methods=["GET", "POST"])
-def login_renseignementgssi():
-    error = None
-    if request.method == "POST":
-        if request.form["username"] == USERNAME_SOG and request.form["password"] == PASSWORD_SOG:
-            session["logged_in_renseignementgssi"] = True
-            return redirect(url_for("renseignementgssi"))
-        else:
-            error = "Identifiants incorrects"
-    return render_template("login.html", error=error)
+def requires_auth(role):
+    """Décorateur pour protéger les routes selon le rôle"""
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            auth = request.authorization
+            if not auth or not check_auth(auth.username, auth.password, role):
+                return authenticate()
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
 
-@app.route("/logout")
-def logout():
-    session.pop("logged_in", None)
-    return redirect(url_for("login"))
-
-# --------- Routes protégées ----------
+# -------- Routes publiques --------
 @app.route("/")
 def home():
     return render_template("index.html")
 
+# -------- Routes protégées --------
 @app.route("/renseignement")
+@requires_auth("renseignement")
 def renseignement():
-    if not session.get("logged_in_renseignement"): 
-        session.pop("logged_in_renseignement", None)
-        return redirect(url_for("login_renseignement"))
     return render_template("Renseignement ICP.html")
 
 @app.route("/consultage")
+@requires_auth("consultage")
 def consultage():
-    if not session.get("logged_in_consultage"):
-        session.pop("logged_in_consultage", None)
-        return redirect(url_for("login_consultage"))
     return render_template("Consultage.html")
 
 @app.route("/renseignementgssi")
+@requires_auth("gssi")
 def renseignementgssi():
-    if not session.get("logged_in_renseignementgssi"): 
-        session.pop("logged_in_renseignementgssi", None)
-        return redirect(url_for("login_renseignementgssi"))
     return render_template("Renseignement GSSI.html")
-    
+
+# -------- ICP routes --------
 @app.route("/save-icp", methods=["POST"])
+@requires_auth("renseignement")
 def save_icp():
     try:
         data = request.get_json()
-        if not data:
-            return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
-        
-        if "agents" not in data or not isinstance(data["agents"], list):
+        if not data or "agents" not in data or not isinstance(data["agents"], list):
             return jsonify({"status": "error", "message": "Format des agents incorrect"}), 400
 
         conn = get_db_connection()
@@ -141,32 +127,21 @@ def save_icp():
 
         for agent in data["agents"]:
             nom = agent.get("nom")
-            # Vérifier si l'agent existe déjà
             c.execute("SELECT id FROM icp WHERE nom = %s", (nom,))
             result = c.fetchone()
 
             if result:
-                # L'agent existe, on met à jour
                 c.execute("""
                     UPDATE icp SET
-                        date = %s,
-                        eap = %s,
-                        pompes = %s,
-                        tractions = %s,
-                        killy = %s,
-                        gainage = %s,
-                        luc_leger = %s,
-                        souplesse = %s,
-                        grh = FALSE
-                    WHERE nom = %s
+                        date=%s, eap=%s, pompes=%s, tractions=%s, killy=%s,
+                        gainage=%s, luc_leger=%s, souplesse=%s, grh=FALSE
+                    WHERE nom=%s
                 """, (
-                    data.get("date"), data.get("eap"),
-                    agent.get("pompes"), agent.get("tractions"), agent.get("killy"),
-                    agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse"),
+                    data.get("date"), data.get("eap"), agent.get("pompes"), agent.get("tractions"),
+                    agent.get("killy"), agent.get("gainage"), agent.get("luc_leger"), agent.get("souplesse"),
                     nom
                 ))
             else:
-                # Sinon on insère
                 c.execute("""
                     INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
@@ -179,7 +154,6 @@ def save_icp():
         conn.commit()
         c.close()
         conn.close()
-
         return jsonify({"status": "ok"})
 
     except Exception as e:
@@ -187,8 +161,8 @@ def save_icp():
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
 @app.route('/get-icp', methods=['GET'])
+@requires_auth("consultage")
 def get_icp():
     try:
         conn = get_db_connection()
@@ -201,36 +175,25 @@ def get_icp():
         results = []
         for row in rows:
             results.append({
-                'id': row[0],
-                'date': row[1],
-                'eap': row[2],
-                'nom': row[3],
-                'pompes': row[4],
-                'tractions': row[5],
-                'killy': row[6],
-                'gainage': row[7],
-                'luc_leger': row[8],
-                'souplesse': row[9],
+                'id': row[0], 'date': row[1], 'eap': row[2], 'nom': row[3],
+                'pompes': row[4], 'tractions': row[5], 'killy': row[6],
+                'gainage': row[7], 'luc_leger': row[8], 'souplesse': row[9],
                 'grh': row[10]
             })
         return jsonify(results)
 
     except Exception as e:
         print(f"Erreur dans /get-icp : {e}")
-        return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
+        return jsonify([])
 
-
-# 🔹 Nouvelle route pour mettre à jour les cases cochées
 @app.route("/update-grh", methods=["POST"])
+@requires_auth("consultage")
 def update_grh():
     try:
         data = request.get_json()
         ids = data.get("ids", [])
-
         if not ids:
             return jsonify({"success": False, "error": "Aucun ID reçu"}), 400
-
-        # ✅ Convertir les IDs en int
         try:
             ids = [int(i) for i in ids]
         except ValueError:
@@ -238,29 +201,23 @@ def update_grh():
 
         conn = get_db_connection()
         c = conn.cursor()
-
-        # ✅ PostgreSQL attend un tableau d'entiers
         c.execute("UPDATE icp SET grh = TRUE WHERE id = ANY(%s)", (ids,))
-        
         conn.commit()
         c.close()
         conn.close()
-
         return jsonify({"success": True})
-
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
+# -------- GSSI routes --------
 @app.route("/save-gssi", methods=["POST"])
+@requires_auth("gssi")
 def save_gssi():
     try:
         data = request.get_json()
-        if not data:
-            return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
-        
-        if "agents" not in data or not isinstance(data["agents"], list):
+        if not data or "agents" not in data or not isinstance(data["agents"], list):
             return jsonify({"status": "error", "message": "Format des agents incorrect"}), 400
 
         conn = get_db_connection()
@@ -268,48 +225,35 @@ def save_gssi():
 
         for agent in data["agents"]:
             nom = agent.get("nom")
-            # Vérifier si l'agent existe déjà
+            psc = True if agent.get("psc") in [True, "true", "on", "1"] else False
+            crochet = True if agent.get("crochet") in [True, "true", "on", "1"] else False
+            excavation = True if agent.get("excavation") in [True, "true", "on", "1"] else False
+
             c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
             result = c.fetchone()
 
             if result:
-                # L'agent existe, on met à jour
                 c.execute("""
-                    UPDATE gssi SET
-                        date = %s,
-                        eap = %s,
-                        psc = %s,
-                        crochet = %s,
-                        excavation = %s,
-                        grh = FALSE
-                    WHERE nom = %s
-                """, (
-                    data.get("date"), data.get("eap"),
-                    agent.get("psc"), agent.get("crochet"), agent.get("excavation"),
-                    nom
-                ))
+                    UPDATE gssi SET date=%s, eap=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
+                    WHERE nom=%s
+                """, (data.get("date"), data.get("eap"), psc, crochet, excavation, nom))
             else:
-                # Sinon on insère
                 c.execute("""
                     INSERT INTO gssi (date, eap, nom, psc, crochet, excavation, grh)
                     VALUES (%s, %s, %s, %s, %s, %s, FALSE)
-                """, (
-                    data.get("date"), data.get("eap"), nom,
-                    agent.get("psc"), agent.get("crochet"), agent.get("excavation")
-                ))
+                """, (data.get("date"), data.get("eap"), nom, psc, crochet, excavation))
 
         conn.commit()
         c.close()
         conn.close()
-
         return jsonify({"status": "ok"})
-
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get-gssi', methods=['GET'])
+@requires_auth("consultage")
 def get_gssi():
     try:
         conn = get_db_connection()
@@ -322,21 +266,16 @@ def get_gssi():
         results = []
         for row in rows:
             results.append({
-                'id': row[0],
-                'date': row[1],
-                'eap': row[2],
-                'nom': row[3],
-                'psc': row[4],
-                'crochet': row[5],
-                'excavation': row[6],
+                'id': row[0], 'date': row[1], 'eap': row[2], 'nom': row[3],
+                'psc': row[4], 'crochet': row[5], 'excavation': row[6],
                 'grh': row[7]
             })
         return jsonify(results)
-
     except Exception as e:
         print(f"Erreur dans /get-gssi : {e}")
-        return jsonify([])  # Retourne un tableau vide pour éviter de planter le JS
+        return jsonify([])
 
+# -------- Test DB --------
 @app.route("/test-db")
 def test_db():
     try:
@@ -347,7 +286,8 @@ def test_db():
         import traceback
         traceback.print_exc()
         return f"Erreur de connexion : {e}", 500
- 
+
+# -------- Run App --------
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
