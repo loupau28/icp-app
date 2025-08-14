@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultation GSSI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('/static/FOND.png') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      color: red;
+    }
+    h2 { margin-bottom: 20px; }
+    label { font-weight: bold; margin-right: 10px; }
+    select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 2px solid black; padding: 10px; text-align: center; }
+    td { background-color: #f2f2f2; }
+    .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h2>CONSULTATION DES GSSI ENREGISTRÉS</h2>
+
+  <div class="filters">
+    <label for="eap-filter">Filtrer par EAP :</label>
+    <select id="eap-filter" onchange="chargerGSSI()">
+      <option value="">Tous</option>
+      <option value="ADC CRETIN">ADC CRETIN</option>
+      <option value="ADC VITTET">ADC VITTET</option>
+      <option value="ADC DETAILLE">ADC DETAILLE</option>
+      <option value="ADC POUSSIN">ADC POUSSIN</option>
+      <option value="ADC GAUDET">ADC GAUDET</option>
+      <option value="ADC TRAVERT">ADC TRAVERT</option>
+    </select>
+
+    <label for="date-filter">Filtrer par date :</label>
+    <input type="date" id="date-filter" onchange="chargerGSSI()" />
+
+    <button onclick="chargerGSSI()">🔁 Rafraîchir</button>
+    <button onclick="enregistrerGRH()">💾 Enregistrement dans GRH</button>
+    <button onclick="window.location.href='/'">RETOUR</button>
+  </div>
+
+  <div id="tableau-container"></div>
+
+  <script>
+    let dataGSSI = []; // Stockage des données chargées
+
+    function chargerGSSI() {
+      fetch("/get-gssi")
+        .then(res => res.json())
+        .then(data => {
+          if (!Array.isArray(data)) {
+            console.error("Erreur API:", data);
+            alert("Erreur lors du chargement des GSSI : " + (data.error || "Erreur inconnue"));
+            document.getElementById("tableau-container").innerHTML = "";
+            return;
+          }
+
+          dataGSSI = data;
+
+          const eapFilter = document.getElementById("eap-filter").value;
+          const dateFilter = document.getElementById("date-filter").value;
+          const container = document.getElementById("tableau-container");
+
+          const filtres = data.filter(entry => {
+            const matchEAP = !eapFilter || entry.eap === eapFilter;
+            const matchDate = !dateFilter || entry.date === dateFilter;
+            return matchEAP && matchDate;
+          });
+
+          if (filtres.length === 0) {
+            container.innerHTML = "<p>Aucun résultat ne correspond aux filtres.</p>";
+            return;
+          }
+
+          let html = "<table><thead><tr>";
+          html += "<th>Date</th><th>EAP</th><th>Nom</th><th>FEU PSC SOUS ARI</th><th>ECHELLE A CROCHET</th><th>SAUVETAGE EN EXCAVATION</th><th>GRH</th>";
+          html += "</tr></thead><tbody>";
+
+          filtres.forEach(entry => {
+            html += `<tr>
+              <td>${formatDateFr(entry.date)}</td>
+              <td>${entry.eap}</td>
+              <td>${entry.nom}</td>
+              <td>${entry.psc ? "Oui" : "Non"}</td>
+              <td>${entry.crochet ? "Oui" : "Non"}</td>
+              <td>${entry.excavation ? "Oui" : "Non"}</td>
+              <td>
+                <input type="checkbox" 
+                  data-id="${entry.id}" 
+                  ${entry.grh ? "checked disabled" : ""}>
+              </td>
+            </tr>`;
+          });
+
+          html += "</tbody></table>";
+          container.innerHTML = html;
+        })
+        .catch(err => {
+          console.error("Erreur lors du chargement :", err);
+          alert("Impossible de charger les GSSI.");
+        });
+    }
+
+    function formatDateFr(dateStr) {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    function enregistrerGRH() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(:disabled):checked');
+      const ids = Array.from(checkboxes).map(cb => cb.getAttribute("data-id"));
+
+      if (ids.length === 0) {
+        alert("Aucune nouvelle case cochée à enregistrer.");
+        return;
+      }
+
+      fetch("/update-grh-gssi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids })
+      })
+      .then(res => res.json())
+      .then(resp => {
+        if (resp.success) {
+          alert("Enregistrement effectué avec succès !");
+          chargerGSSI(); // Rafraîchir
+        } else {
+          alert("Erreur lors de l'enregistrement : " + (resp.error || "Erreur inconnue"));
+        }
+      })
+      .catch(err => {
+        console.error("Erreur enregistrement :", err);
+        alert("Impossible d'enregistrer.");
+      });
+    }
+
+    window.onload = chargerGSSI;
+  </script>
+</body>
+</html>

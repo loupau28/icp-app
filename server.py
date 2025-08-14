@@ -10,15 +10,15 @@ CORS(app)
 USERS = {
     "renseignement": {"username": "EAP-TAV", "password": "EAP-TAV95"},
     "consultage": {"username": "BFOR-TAV", "password": "BFOR-TAV95"},
-    "gssi": {"username": "SOG-TAV", "password": "SOG-TAV95"}
+    "gssi": {"username": "SOG-TAV", "password": "SOG-TAV95"},
+    "congssi": {"username": "CONS-GSSI", "password": "CONS-GSSI95"}
 }
 
 DATABASE_URL = os.environ.get("DATABASE_URL")  # Exemple : postgres://user:pass@host/db
 
 # -------------------- BDD --------------------
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-    return conn
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
 
 def init_db():
     conn = get_db_connection()
@@ -65,17 +65,17 @@ def login(role):
         password = request.form.get("password")
         creds = USERS[role]
         if username == creds["username"] and password == creds["password"]:
-            # Affiche directement la page du rôle
             if role == "renseignement":
                 return render_template("Renseignement ICP.html")
             elif role == "consultage":
                 return render_template("Consultage.html")
             elif role == "gssi":
                 return render_template("Renseignement GSSI.html")
+            elif role == "congssi":
+                return render_template("ConsultageGSSI.html")
         else:
             error = "Identifiants incorrects"
     return render_template("login.html", error=error, role=role)
-
 
 # -------------------- ROUTES --------------------
 @app.route("/")
@@ -94,6 +94,9 @@ def consultage_page():
 def gssi_page():
     return redirect(url_for("login", role="gssi"))
 
+@app.route("/congssi")
+def consultage_gssi_page():
+    return redirect(url_for("login", role="congssi"))
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
@@ -213,6 +216,29 @@ def get_gssi():
     except Exception as e:
         print(e)
         return jsonify([])
+
+# -------------------- UPDATE GRH MUTUALISÉ --------------------
+@app.route("/update-grh/<table>", methods=["POST"])
+def update_grh(table):
+    if table not in ["icp", "gssi"]:
+        return jsonify({"error": "Table invalide"}), 400
+    try:
+        data = request.get_json()
+        ids = data.get("ids", [])
+        if not ids:
+            return jsonify({"error": "Aucun ID fourni"}), 400
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        for id_val in ids:
+            c.execute(f"UPDATE {table} SET grh = TRUE WHERE id = %s", (id_val,))
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Erreur update GRH {table}:", e)
+        return jsonify({"error": str(e)}), 500
 
 # -------------------- LANCEMENT --------------------
 if __name__ == "__main__":
