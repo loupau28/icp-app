@@ -16,7 +16,7 @@
       border-collapse: collapse;
       margin-top: 20px;
       width: 100%;
-      min-width: 700px; /* pour forcer le scroll horizontal si nécessaire */
+      min-width: 700px;
     }
     th, td {
       border: 2px solid black;
@@ -40,7 +40,7 @@
     }
     #tableau-container {
       width: 100%;
-      overflow-x: auto; /* défilement horizontal pour tablette */
+      overflow-x: auto;
     }
     #send-button {
       display: none;
@@ -104,6 +104,14 @@
       // Défilement horizontal
       container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
       document.getElementById('send-button').style.display = 'block';
+
+      // Conversion automatique des noms en majuscules
+      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+      nomCells.forEach(td => {
+        td.addEventListener('input', () => {
+          td.innerText = td.innerText.toUpperCase();
+        });
+      });
     }
 
     function ajouterStylesTable(table) {

@@ -103,6 +103,14 @@
 
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
+
+      // ✅ Convertir le texte des cellules "NOM" en majuscules automatiquement
+      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+      nomCells.forEach(td => {
+        td.addEventListener('input', () => {
+          td.innerText = td.innerText.toUpperCase();
+        });
+      });
     }
 
     function ajouterStylesTable(table) {
