@@ -11,7 +11,7 @@ USERS = {
     "renseignement": {"username": "EAP-TAV", "password": "EAP-TAV95"},
     "consultage": {"username": "BFOR-TAV", "password": "BFOR-TAV95"},
     "gssi": {"username": "SOG-TAV", "password": "SOG-TAV95"},
-    "congssi": {"username": "CONS-GSSI", "password": "CONS-GSSI95"}
+    "congssi": {"username": "SOG-TAV", "password": "SOG-TAV95"}
 }
 
 DATABASE_URL = os.environ.get("DATABASE_URL")  # Exemple : postgres://user:pass@host/db
