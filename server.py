@@ -105,40 +105,45 @@ def save_icp():
         data = request.get_json()
         if not data or "agents" not in data:
             return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
+
         conn = get_db_connection()
         c = conn.cursor()
+
         for agent in data["agents"]:
-            nom = agent.get("nom")
+            nom = (agent.get("nom") or "").strip().upper()  # <-- Majuscules ici
+            pompes = agent.get("pompes", 0)
+            tractions = agent.get("tractions", 0)
+            killy = agent.get("killy", 0)
+            gainage = agent.get("gainage", 0)
+            luc_leger = agent.get("luc_leger", 0)
+            souplesse = agent.get("souplesse", 0)
+
             c.execute("SELECT id FROM icp WHERE nom = %s", (nom,))
             result = c.fetchone()
+
             if result:
                 c.execute("""
-                    UPDATE icp SET
-                        date=%s, eap=%s, pompes=%s, tractions=%s, killy=%s,
-                        gainage=%s, luc_leger=%s, souplesse=%s, grh=FALSE
+                    UPDATE icp
+                    SET date=%s, eap=%s, pompes=%s, tractions=%s, killy=%s, gainage=%s, luc_leger=%s, souplesse=%s
                     WHERE nom=%s
-                """, (
-                    data.get("date"), data.get("eap"), agent.get("pompes"),
-                    agent.get("tractions"), agent.get("killy"), agent.get("gainage"),
-                    agent.get("luc_leger"), agent.get("souplesse"), nom
-                ))
+                """, (data.get("date"), data.get("eap"), pompes, tractions, killy, gainage, luc_leger, souplesse, nom))
             else:
                 c.execute("""
-                    INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse, grh)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)
-                """, (
-                    data.get("date"), data.get("eap"), nom, agent.get("pompes"),
-                    agent.get("tractions"), agent.get("killy"), agent.get("gainage"),
-                    agent.get("luc_leger"), agent.get("souplesse")
-                ))
+                    INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (data.get("date"), data.get("eap"), nom, pompes, tractions, killy, gainage, luc_leger, souplesse))
+
         conn.commit()
         c.close()
         conn.close()
+
         return jsonify({"status": "ok"})
+
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route("/get-icp")
 def get_icp():
@@ -169,33 +174,42 @@ def save_gssi():
         data = request.get_json()
         if not data or "agents" not in data:
             return jsonify({"status": "error", "message": "Pas de données reçues"}), 400
+
         conn = get_db_connection()
         c = conn.cursor()
+
         for agent in data["agents"]:
-            nom = agent.get("nom")
+            nom = (agent.get("nom") or "").strip().upper()  # <-- Forcer MAJUSCULES
             psc = bool(agent.get("psc"))
             crochet = bool(agent.get("crochet"))
             excavation = bool(agent.get("excavation"))
+
             c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
             result = c.fetchone()
+
             if result:
                 c.execute("""
-                    UPDATE gssi SET date=%s, eap=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
+                    UPDATE gssi
+                    SET date=%s, eap=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
                     WHERE nom=%s
                 """, (data.get("date"), data.get("eap"), psc, crochet, excavation, nom))
             else:
                 c.execute("""
-                    INSERT INTO gssi (date,eap,nom,psc,crochet,excavation,grh)
-                    VALUES (%s,%s,%s,%s,%s,%s,FALSE)
+                    INSERT INTO gssi (date, eap, nom, psc, crochet, excavation, grh)
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE)
                 """, (data.get("date"), data.get("eap"), nom, psc, crochet, excavation))
+
         conn.commit()
         c.close()
         conn.close()
+
         return jsonify({"status": "ok"})
+
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route("/get-gssi")
 def get_gssi():

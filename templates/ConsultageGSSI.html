@@ -10,14 +10,35 @@
       background: url('/static/FOND.png') no-repeat center center fixed;
       background-size: cover;
       padding: 20px;
+      margin: 0;
       color: red;
     }
+
+    /* Ajustements pour petits écrans */
+    @media (max-width: 768px) {
+      body {
+        background-size: contain;
+        padding: 10px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      select, input, button {
+        font-size: 14px;
+        padding: 8px;
+      }
+    }
+
     h2 { margin-bottom: 20px; }
     label { font-weight: bold; margin-right: 10px; }
     select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
+
     table { border-collapse: collapse; margin-top: 20px; width: 100%; }
     th, td { border: 2px solid black; padding: 10px; text-align: center; }
     td { background-color: #f2f2f2; }
+
     .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
   </style>
 </head>
@@ -124,7 +145,7 @@
         return;
       }
 
-      fetch("/update-grh-gssi", {
+      fetch("/update-grh/gssi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })

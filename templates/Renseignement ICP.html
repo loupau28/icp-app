@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-     background: url('/static/FOND.png') no-repeat center center fixed;
+      background: url('/static/FOND.png') no-repeat center center fixed;
       background-size: cover;
       padding: 20px;
       color: red;
@@ -16,6 +16,7 @@
       border-collapse: collapse;
       margin-top: 20px;
       width: 100%;
+      min-width: 700px; /* pour forcer le scroll horizontal si nécessaire */
     }
     th, td {
       border: 2px solid black;
@@ -36,6 +37,10 @@
     label {
       font-weight: bold;
       margin-right: 10px;
+    }
+    #tableau-container {
+      width: 100%;
+      overflow-x: auto; /* défilement horizontal pour tablette */
     }
     #send-button {
       display: none;
@@ -69,114 +74,109 @@
   <div id="tableau-container"></div>
   <div id="send-button">
     <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
-	<button onclick="window.location.href='/'">RETOUR</button>
-
+    <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
-function genererTableau() {
-  const container = document.getElementById('tableau-container');
-  const nombre = parseInt(document.getElementById('nombre').value);
-  const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+    function genererTableau() {
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value);
+      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-  let html = "<table><thead><tr>";
-  colonnes.forEach(col => html += `<th>${col}</th>`);
-  html += "</tr></thead><tbody>";
+      let html = "<table><thead><tr>";
+      colonnes.forEach(col => html += `<th>${col}</th>`);
+      html += "</tr></thead><tbody>";
 
-  for (let i = 0; i < nombre; i++) {
-    html += "<tr>";
-    colonnes.forEach((col, j) => {
-      if (j === 0) html += `<td contenteditable="true"></td>`;
-      else html += `<td><input type="number" min="0"/></td>`;
-    });
-    html += "</tr>";
-  }
-  html += "</tbody></table>";
-  container.innerHTML = html;
-  document.getElementById('send-button').style.display = 'block';
-}
+      for (let i = 0; i < nombre; i++) {
+        html += "<tr>";
+        colonnes.forEach((col, j) => {
+          if (j === 0) html += `<td contenteditable="true"></td>`;
+          else html += `<td><input type="number" min="0"/></td>`;
+        });
+        html += "</tr>";
+      }
+      html += "</tbody></table>";
 
-function ajouterStylesTable(table) {
-  table.style.borderCollapse = "collapse";
-  table.style.width = "100%";
-
-  // Styles pour chaque <th>
-  table.querySelectorAll("th").forEach(th => {
-    th.style.border = "2px solid black";
-    th.style.padding = "10px";
-    th.style.textAlign = "center";
-    th.style.backgroundColor = "#f2f2f2";
-  });
-
-  // Styles pour chaque <td>
-  table.querySelectorAll("td").forEach(td => {
-    td.style.border = "2px solid black";
-    td.style.padding = "10px";
-    td.style.textAlign = "center";
-    td.style.backgroundColor = "#f2f2f2";
-  });
-
-  return table.outerHTML;
-}
-
-function envoyerEmailEtSauvegarder() {
-  const eap = document.getElementById("EAP-select").value;
-  const table = document.querySelector("table");
-  const rows = document.querySelectorAll("tbody tr");
-
-  const agents = [];
-
-  rows.forEach(row => {
-    const cells = row.querySelectorAll("td");
-    const nom = cells[0].innerText.trim();
-    const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
-    const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
-    const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
-    const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
-    const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
-    const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
-
-    agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
-
-    // Remplacer les inputs par du texte dans l'aperçu email (dans chaque ligne)
-    for (let i = 1; i < cells.length; i++) {
-      const val = cells[i].querySelector("input")?.value || "";
-      cells[i].innerText = val;
+      // Défilement horizontal
+      container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
+      document.getElementById('send-button').style.display = 'block';
     }
-  });
 
-  // Cloner le tableau pour ne pas modifier celui de la page et injecter les styles inline
-  const tableClone = table.cloneNode(true);
-  const tableHTML = ajouterStylesTable(tableClone);
+    function ajouterStylesTable(table) {
+      table.style.borderCollapse = "collapse";
+      table.style.width = "100%";
 
-  emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-    eap_name: eap,
-    table_html: tableHTML,
-    date_envoi: new Date().toLocaleDateString("fr-FR")
-  }).then(() => {
-    alert("Email envoyé !");
-  }).catch(err => {
-    alert("Erreur d'envoi email : " + err.text);
-  });
+      table.querySelectorAll("th").forEach(th => {
+        th.style.border = "2px solid black";
+        th.style.padding = "10px";
+        th.style.textAlign = "center";
+        th.style.backgroundColor = "#f2f2f2";
+      });
 
-  fetch("/save-icp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      eap: eap,
-      date: new Date().toISOString().slice(0, 10),
-      agents: agents
-    })
-  }).then(res => res.json())
-    .then(data => console.log("Sauvegarde OK :", data))
-    .catch(err => console.error("Erreur de sauvegarde :", err));
-}
+      table.querySelectorAll("td").forEach(td => {
+        td.style.border = "2px solid black";
+        td.style.padding = "10px";
+        td.style.textAlign = "center";
+        td.style.backgroundColor = "#f2f2f2";
+      });
 
+      return table.outerHTML;
+    }
 
+    function envoyerEmailEtSauvegarder() {
+      const eap = document.getElementById("EAP-select").value;
+      const table = document.querySelector("table");
+      const rows = document.querySelectorAll("tbody tr");
+
+      const agents = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const nom = cells[0].innerText.trim().toUpperCase(); // forcer majuscule
+        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
+        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
+        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
+        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
+        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
+        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+
+        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+
+        for (let i = 1; i < cells.length; i++) {
+          const val = cells[i].querySelector("input")?.value || "";
+          cells[i].innerText = val;
+        }
+      });
+
+      const tableClone = table.cloneNode(true);
+      const tableHTML = ajouterStylesTable(tableClone);
+
+      emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
+        eap_name: eap,
+        table_html: tableHTML,
+        date_envoi: new Date().toLocaleDateString("fr-FR")
+      }).then(() => {
+        alert("Email envoyé !");
+      }).catch(err => {
+        alert("Erreur d'envoi email : " + err.text);
+      });
+
+      fetch("/save-icp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eap: eap,
+          date: new Date().toISOString().slice(0, 10),
+          agents: agents
+        })
+      }).then(res => res.json())
+        .then(data => console.log("Sauvegarde OK :", data))
+        .catch(err => console.error("Erreur de sauvegarde :", err));
+    }
   </script>
 </body>
 </html>

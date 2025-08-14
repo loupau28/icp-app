@@ -15,10 +15,11 @@
     h2 { margin-bottom: 20px; }
     label { font-weight: bold; margin-right: 10px; }
     select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
-    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; min-width: 800px; }
     th, td { border: 2px solid black; padding: 10px; text-align: center; }
     td { background-color: #f2f2f2; }
     .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
+    #tableau-container { overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -43,13 +44,13 @@
 
     <button onclick="chargerICP()">🔁 Rafraîchir</button>
     <button onclick="enregistrerGRH()">💾 Enregistrement dans GRH</button>
-		<button onclick="window.location.href='/'">RETOUR</button>
+    <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
   <div id="tableau-container"></div>
 
   <script>
-    let dataICP = []; // Pour stocker les données chargées
+    let dataICP = [];
 
     function chargerICP() {
       fetch("/get-icp")
@@ -62,7 +63,7 @@
             return;
           }
 
-          dataICP = data; // On stocke pour traitement futur
+          dataICP = data;
 
           const eapFilter = document.getElementById("eap-filter").value;
           const dateFilter = document.getElementById("date-filter").value;
@@ -83,7 +84,7 @@
           html += "<th>Date</th><th>EAP</th><th>Nom</th><th>POMPES</th><th>TRACTIONS</th><th>KILLY</th><th>GAINAGE</th><th>LUC LEGER</th><th>SOUPLESSE</th><th>GRH</th>";
           html += "</tr></thead><tbody>";
 
-          filtres.forEach((entry, index) => {
+          filtres.forEach(entry => {
             html += `<tr>
               <td>${formatDateFr(entry.date)}</td>
               <td>${entry.eap}</td>
@@ -103,7 +104,9 @@
           });
 
           html += "</tbody></table>";
-          container.innerHTML = html;
+
+          // Ajout du scroll horizontal
+          container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
         })
         .catch(err => {
           console.error("Erreur lors du chargement :", err);
@@ -129,7 +132,7 @@
         return;
       }
 
-      fetch("/update-grh", {
+      fetch("/update-grh/<table>", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })
@@ -138,7 +141,7 @@
       .then(resp => {
         if (resp.success) {
           alert("Enregistrement effectué avec succès !");
-          chargerICP(); // Rafraîchir le tableau
+          chargerICP();
         } else {
           alert("Erreur lors de l'enregistrement : " + (resp.error || "Erreur inconnue"));
         }
