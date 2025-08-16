@@ -42,6 +42,9 @@
     <label for="date-filter">Filtrer par date :</label>
     <input type="date" id="date-filter" onchange="chargerICP()" />
 
+    <label for="agent-filter">Rechercher un agent :</label>
+    <input type="text" id="agent-filter" oninput="chargerICP()" placeholder="Nom de l'agent...">
+
     <button onclick="chargerICP()">🔁 Rafraîchir</button>
     <button onclick="enregistrerGRH()">💾 Enregistrement dans GRH</button>
     <button onclick="window.location.href='/'">RETOUR</button>
@@ -67,12 +70,14 @@
 
           const eapFilter = document.getElementById("eap-filter").value;
           const dateFilter = document.getElementById("date-filter").value;
+          const agentFilter = document.getElementById("agent-filter").value.toLowerCase();
           const container = document.getElementById("tableau-container");
 
           const filtres = data.filter(entry => {
             const matchEAP = !eapFilter || entry.eap === eapFilter;
             const matchDate = !dateFilter || entry.date === dateFilter;
-            return matchEAP && matchDate;
+            const matchAgent = !agentFilter || entry.nom.toLowerCase().includes(agentFilter);
+            return matchEAP && matchDate && matchAgent;
           });
 
           if (filtres.length === 0) {
@@ -104,8 +109,6 @@
           });
 
           html += "</tbody></table>";
-
-          // Ajout du scroll horizontal
           container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
         })
         .catch(err => {
@@ -132,7 +135,7 @@
         return;
       }
 
-      fetch("/update-grh/<table>", {
+      fetch("/update-grh/icp", {  // 👈 adapté pour ICP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })

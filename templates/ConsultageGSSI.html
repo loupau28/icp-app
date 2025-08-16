@@ -60,6 +60,9 @@
     <label for="date-filter">Filtrer par date :</label>
     <input type="date" id="date-filter" onchange="chargerGSSI()" />
 
+    <label for="agent-filter">Rechercher un agent :</label>
+    <input type="text" id="agent-filter" oninput="chargerGSSI()" placeholder="Nom de l'agent...">
+
     <button onclick="chargerGSSI()">🔁 Rafraîchir</button>
     <button onclick="enregistrerGRH()">💾 Enregistrement dans GRH</button>
     <button onclick="window.location.href='/'">RETOUR</button>
@@ -85,12 +88,14 @@
 
           const eapFilter = document.getElementById("eap-filter").value;
           const dateFilter = document.getElementById("date-filter").value;
+          const agentFilter = document.getElementById("agent-filter").value.toLowerCase();
           const container = document.getElementById("tableau-container");
 
           const filtres = data.filter(entry => {
             const matchEAP = !eapFilter || entry.eap === eapFilter;
             const matchDate = !dateFilter || entry.date === dateFilter;
-            return matchEAP && matchDate;
+            const matchAgent = !agentFilter || entry.nom.toLowerCase().includes(agentFilter);
+            return matchEAP && matchDate && matchAgent;
           });
 
           if (filtres.length === 0) {

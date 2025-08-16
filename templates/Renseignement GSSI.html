@@ -4,46 +4,51 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GSSI</title>
-  <style>
+   <style>
     body {
       font-family: Arial, sans-serif;
-      background: url('/static/fond2.png') no-repeat center center fixed;
+      background: url('/static/FOND.png') no-repeat center center fixed;
       background-size: cover;
       padding: 20px;
       color: red;
-      margin: 0;
     }
-
-    h2 { margin-bottom: 20px; }
-
-    /* Ajustements pour petits écrans */
-    @media (max-width: 768px) {
-      body { background-size: contain; padding: 10px; }
-      table { font-size: 14px; }
-      input, button, select { font-size: 14px; padding: 8px; }
-    }
-
-    label { font-weight: bold; margin-right: 10px; }
-
-    /* Table et cellules */
     table {
       border-collapse: collapse;
       margin-top: 20px;
       width: 100%;
-      min-width: 800px; /* pour scroll horizontal sur petits écrans */
+      min-width: 700px;
     }
     th, td {
       border: 2px solid black;
       padding: 10px;
       text-align: center;
     }
-    td { background-color: #f2f2f2; }
-    td[contenteditable="true"] { background-color: #fff; }
-
-    /* Conteneur scroll */
-    #tableau-container { overflow-x: auto; }
-
-    #send-button { display: none; margin-top: 20px; }
+    td {
+      background-color: #f2f2f2;
+    }
+    td[contenteditable="true"] {
+      background-color: #fff;
+      direction: ltr;        /* sens d'écriture gauche → droite */
+      unicode-bidi: plaintext; /* corrige les inversions possibles */
+      text-align: left;      /* alignement du texte à gauche */
+    }
+    input, button, select {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    #tableau-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+    #send-button {
+      display: none;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
