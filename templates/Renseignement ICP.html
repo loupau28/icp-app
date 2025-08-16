@@ -28,9 +28,9 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr;        /* sens d'écriture gauche → droite */
-      unicode-bidi: embed;   /* corrige les inversions possibles */
-      text-align: left;      /* alignement du texte à gauche */
+      direction: ltr;
+      unicode-bidi: embed;
+      text-align: left;
     }
     input, button, select {
       margin: 10px 0;
@@ -97,7 +97,7 @@
       for (let i = 0; i < nombre; i++) {
         html += "<tr>";
         colonnes.forEach((col, j) => {
-          if (j === 0) html += `<td contenteditable="true">\u00A0</td>`; // espace insécable pour éviter inversion
+          if (j === 0) html += `<td contenteditable="true"></td>`;
           else html += `<td><input type="number" min="0"/></td>`;
         });
         html += "</tr>";
@@ -107,13 +107,11 @@
       container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
       document.getElementById('send-button').style.display = 'block';
 
-      // Conversion automatique des noms en majuscules
+      // Conversion automatique en majuscules
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.addEventListener('input', () => {
-          td.style.direction = 'ltr';
-          td.style.unicodeBidi = 'embed';
-          td.innerText = '\u00A0' + td.innerText.trim().toUpperCase();
+          td.innerText = td.innerText.toUpperCase();
         });
       });
     }
@@ -121,21 +119,18 @@
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-
       table.querySelectorAll("th").forEach(th => {
         th.style.border = "2px solid black";
         th.style.padding = "10px";
         th.style.textAlign = "center";
         th.style.backgroundColor = "#f2f2f2";
       });
-
       table.querySelectorAll("td").forEach(td => {
         td.style.border = "2px solid black";
         td.style.padding = "10px";
         td.style.textAlign = "center";
         td.style.backgroundColor = "#f2f2f2";
       });
-
       return table.outerHTML;
     }
 
@@ -143,7 +138,6 @@
       const eap = document.getElementById("EAP-select").value;
       const table = document.querySelector("table");
       const rows = document.querySelectorAll("tbody tr");
-
       const agents = [];
 
       rows.forEach(row => {
