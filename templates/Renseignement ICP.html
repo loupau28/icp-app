@@ -28,9 +28,9 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr !important;  /* force gauche → droite */
-      unicode-bidi: embed;        /* éviter inversion texte */
-      text-align: left;
+      direction: ltr;        /* sens d'écriture gauche → droite */
+      unicode-bidi: embed;   /* corrige les inversions possibles */
+      text-align: left;      /* alignement du texte à gauche */
     }
     input, button, select {
       margin: 10px 0;
@@ -55,15 +55,17 @@
   <h2>RENSEIGNEMENT DES ICP</h2>
 
   <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-    <label for="SOG-select">Nom du SOG :</label>
-    <select id="SOG-select">
+    <label for="EAP-select">Nom de l’EAP :</label>
+    <select id="EAP-select">
       <option value="">Sélectionnez</option>
-      <option value="ADC CRETIN">ADC CRETIN</option>
-      <option value="ADC VITTET">ADC VITTET</option>
-      <option value="ADC DETAILLE">ADC DETAILLE</option>
-      <option value="ADC POUSSIN">ADC POUSSIN</option>
-      <option value="ADC GAUDET">ADC GAUDET</option>
-      <option value="ADC TRAVERT">ADC TRAVERT</option>
+      <option value="ADC BERNARD">ADC BERNARD EAP 2</option>
+      <option value="ADC CRETIN">ADC CRETIN EAP 2</option>
+      <option value="ADC VITTET">ADC VITTET EAP 2</option>
+      <option value="ADJ THIBAULT">ADJ THIBAULT EAP 2</option>
+      <option value="ADC LAMART">ADC LAMART EAP 1</option>
+      <option value="SCH BONY">SCH BONY EAP 1</option>
+      <option value="CCH REBIERRE">CCH REBIERRE EAP 1</option>
+      <option value="CPL SKIRLO">CPL SKIRLO EAP 1</option>
     </select>
 
     <label for="nombre">Nombre d’agents :</label>
@@ -73,9 +75,8 @@
   </div>
 
   <div id="tableau-container"></div>
-
   <div id="send-button">
-    <button onclick="envoyerEmailEtSauvegarder('ICP')">ENVOYER ICP</button>
+    <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
@@ -86,34 +87,33 @@
     function genererTableau() {
       const container = document.getElementById('tableau-container');
       const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["NOM","FORMATION SECURITE", "ECHELLE A CROCHET", "SAUVETAGE EN HAUTEUR"];
+      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<div style='overflow-x:auto;'><table><thead><tr>";
+      let html = "<table><thead><tr>";
       colonnes.forEach(col => html += `<th>${col}</th>`);
       html += "</tr></thead><tbody>";
 
       for (let i = 0; i < nombre; i++) {
         html += "<tr>";
         colonnes.forEach((col, j) => {
-          if (j === 0) {
-            html += `<td contenteditable="true"></td>`;
-          } else {
-            html += `<td><input type="checkbox"/></td>`;
-          }
+          if (j === 0) html += `<td contenteditable="true">\u00A0</td>`; // espace insécable pour éviter inversion
+          else html += `<td><input type="number" min="0"/></td>`;
         });
         html += "</tr>";
       }
-      html += "</tbody></table></div>";
+      html += "</tbody></table>";
 
-      container.innerHTML = html;
+      container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
       document.getElementById('send-button').style.display = 'block';
 
-      // majuscules correctes
+      // Conversion automatique des noms en majuscules
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
+          td.style.direction = 'ltr';
+          td.style.unicodeBidi = 'embed';
+          td.innerText = '\u00A0' + td.innerText.trim().toUpperCase();
         });
       });
     }
@@ -121,54 +121,63 @@
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
+
       table.querySelectorAll("th").forEach(th => {
         th.style.border = "2px solid black";
         th.style.padding = "10px";
         th.style.textAlign = "center";
         th.style.backgroundColor = "#f2f2f2";
       });
+
       table.querySelectorAll("td").forEach(td => {
         td.style.border = "2px solid black";
         td.style.padding = "10px";
         td.style.textAlign = "center";
         td.style.backgroundColor = "#f2f2f2";
       });
+
       return table.outerHTML;
     }
 
-    function envoyerEmailEtSauvegarder(type) {
-      const eap = document.getElementById("SOG-select").value;
+    function envoyerEmailEtSauvegarder() {
+      const eap = document.getElementById("EAP-select").value;
       const table = document.querySelector("table");
       const rows = document.querySelectorAll("tbody tr");
+
       const agents = [];
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim();
-        const formation = cells[1].querySelector("input")?.checked ? 1 : 0;
-        const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
-        const hauteur = cells[3].querySelector("input")?.checked ? 1 : 0;
-        agents.push({ nom, formation, crochet, hauteur });
-        cells[1].innerText = formation ? "Oui" : "Non";
-        cells[2].innerText = crochet ? "Oui" : "Non";
-        cells[3].innerText = hauteur ? "Oui" : "Non";
+        const nom = cells[0].innerText.trim().toUpperCase();
+        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
+        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
+        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
+        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
+        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
+        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+
+        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+
+        for (let i = 1; i < cells.length; i++) {
+          const val = cells[i].querySelector("input")?.value || "";
+          cells[i].innerText = val;
+        }
       });
 
       const tableClone = table.cloneNode(true);
       const tableHTML = ajouterStylesTable(tableClone);
 
-      emailjs.send("SOGTAV", "ENVOIEICPIC", {
+      emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
         eap_name: eap,
         table_html: tableHTML,
-        date_envoi: new Date().toLocaleDateString("fr-FR"),
-        type_resultat: type
+        date_envoi: new Date().toLocaleDateString("fr-FR")
       }).then(() => {
-        alert(`Email ${type} envoyé !`);
+        alert("Email envoyé !");
       }).catch(err => {
         alert("Erreur d'envoi email : " + err.text);
       });
 
-      fetch(`/save-${type.toLowerCase()}`, {
+      fetch("/save-icp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,10 +185,9 @@
           date: new Date().toISOString().slice(0, 10),
           agents: agents
         })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Sauvegarde OK :", data))
-      .catch(err => console.error("Erreur de sauvegarde :", err));
+      }).then(res => res.json())
+        .then(data => console.log("Sauvegarde OK :", data))
+        .catch(err => console.error("Erreur de sauvegarde :", err));
     }
   </script>
 </body>

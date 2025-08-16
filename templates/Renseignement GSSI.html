@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GSSI</title>
-   <style>
+  <style>
     body {
       font-family: Arial, sans-serif;
       background: url('/static/FOND.png') no-repeat center center fixed;
@@ -28,8 +28,8 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr !important;      /* forcer gauche → droite */
-      unicode-bidi: embed;            /* éviter l’inversion du texte */
+      direction: ltr !important;  /* forcer gauche → droite */
+      unicode-bidi: embed;        /* éviter l’inversion du texte */
       text-align: left;
     }
     input, button, select {
@@ -97,7 +97,7 @@
         html += "<tr>";
         colonnes.forEach((col, j) => {
           if (j === 0) {
-            html += `<td contenteditable="true"></td>`;
+            html += `<td contenteditable="true">\u00A0</td>`; // espace insécable pour éviter inversion
           } else {
             html += `<td><input type="checkbox"/></td>`;
           }
@@ -109,11 +109,13 @@
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      // Convertir automatiquement le texte en majuscules correctement
+      // Conversion automatique des noms en majuscules
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
+          td.style.direction = 'ltr';
+          td.style.unicodeBidi = 'embed';
+          td.innerText = '\u00A0' + td.innerText.trim().toUpperCase();
         });
       });
     }
@@ -137,18 +139,19 @@
     }
 
     function envoyerEmailEtSauvegarder(type) {
-      const eap = document.getElementById("SOG-select").value;
+      const sog = document.getElementById("SOG-select").value;
       const table = document.querySelector("table");
       const rows = document.querySelectorAll("tbody tr");
       const agents = [];
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim();
+        const nom = cells[0].innerText.replace(/^\u00A0/, '').trim(); // enlever l’espace insécable
         const psc = cells[1].querySelector("input")?.checked ? 1 : 0;
         const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
         const excavation = cells[3].querySelector("input")?.checked ? 1 : 0;
         agents.push({ nom, psc, crochet, excavation });
+
         cells[1].innerText = psc ? "Oui" : "Non";
         cells[2].innerText = crochet ? "Oui" : "Non";
         cells[3].innerText = excavation ? "Oui" : "Non";
@@ -158,7 +161,7 @@
       const tableHTML = ajouterStylesTable(tableClone);
 
       emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-        eap_name: eap,
+        eap_name: sog,
         table_html: tableHTML,
         date_envoi: new Date().toLocaleDateString("fr-FR"),
         type_resultat: type
@@ -172,7 +175,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eap: eap,
+          sog: sog,
           date: new Date().toISOString().slice(0, 10),
           agents: agents
         })
