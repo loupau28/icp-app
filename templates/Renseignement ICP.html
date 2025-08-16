@@ -28,9 +28,9 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr;
-      unicode-bidi: embed;
-      text-align: left;
+      direction: ltr;        /* sens d'écriture gauche → droite */
+      unicode-bidi: embed;   /* corrige l’inversion du texte */
+      text-align: left;      /* alignement du texte à gauche */
     }
     input, button, select {
       margin: 10px 0;
@@ -107,9 +107,11 @@
       container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
       document.getElementById('send-button').style.display = 'block';
 
-      // Conversion automatique en majuscules
+      // Conversion automatique des noms en majuscules dans le bon sens
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
+        td.style.direction = 'ltr';
+        td.style.unicodeBidi = 'embed';
         td.addEventListener('input', () => {
           td.innerText = td.innerText.toUpperCase();
         });

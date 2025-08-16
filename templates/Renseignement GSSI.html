@@ -97,7 +97,7 @@
         html += "<tr>";
         colonnes.forEach((col, j) => {
           if (j === 0) {
-            html += `<td contenteditable="true"></td>`; // exemple COLIN par défaut
+            html += `<td contenteditable="true"></td>`;
           } else {
             html += `<td><input type="checkbox"/></td>`;
           }
@@ -109,9 +109,11 @@
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      // Forcer la conversion en majuscules
+      // Force noms en majuscules et sens d’écriture correct
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
+        td.style.direction = "ltr";
+        td.style.unicodeBidi = "embed";
         td.addEventListener('input', () => {
           td.innerText = td.innerText.toUpperCase();
         });
