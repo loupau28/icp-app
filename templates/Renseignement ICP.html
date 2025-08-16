@@ -84,39 +84,45 @@
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
-    function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+   function genererTableau() {
+  const container = document.getElementById('tableau-container');
+  const nombre = parseInt(document.getElementById('nombre').value);
+  const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
+  let html = "<table><thead><tr>";
+  colonnes.forEach(col => html += `<th>${col}</th>`);
+  html += "</tr></thead><tbody>";
 
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) html += `<td contenteditable="true"></td>`;
-          else html += `<td><input type="number" min="0"/></td>`;
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table>";
+  for (let i = 0; i < nombre; i++) {
+    html += "<tr>";
+    colonnes.forEach((col, j) => {
+      if (j === 0) html += `<td contenteditable="true"></td>`;
+      else html += `<td><input type="number" min="0"/></td>`;
+    });
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
 
-      container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
-      document.getElementById('send-button').style.display = 'block';
+  container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
+  document.getElementById('send-button').style.display = 'block';
 
-      // Conversion automatique des noms en majuscules dans le bon sens
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.style.direction = 'ltr';
-        td.style.unicodeBidi = 'embed';
-        td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
-        });
-      });
-    }
+  const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+  nomCells.forEach(td => {
+    td.style.direction = 'ltr';
+    td.style.unicodeBidi = 'embed';
+    td.addEventListener('input', () => {
+      const sel = window.getSelection();
+      const pos = sel.anchorOffset;
+      td.innerText = td.innerText.toUpperCase();
+      const range = document.createRange();
+      range.setStart(td.firstChild || td, pos);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  });
+}
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";

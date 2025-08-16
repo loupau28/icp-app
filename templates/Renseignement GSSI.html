@@ -84,41 +84,50 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+  const container = document.getElementById('tableau-container');
+  const nombre = parseInt(document.getElementById('nombre').value);
+  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<div style='overflow-x:auto;'><table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
+  let html = "<div style='overflow-x:auto;'><table><thead><tr>";
+  colonnes.forEach(col => html += `<th>${col}</th>`);
+  html += "</tr></thead><tbody>";
 
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) {
-            html += `<td contenteditable="true"></td>`;
-          } else {
-            html += `<td><input type="checkbox"/></td>`;
-          }
-        });
-        html += "</tr>";
+  for (let i = 0; i < nombre; i++) {
+    html += "<tr>";
+    colonnes.forEach((col, j) => {
+      if (j === 0) {
+        html += `<td contenteditable="true"></td>`;
+      } else {
+        html += `<td><input type="checkbox"/></td>`;
       }
-      html += "</tbody></table></div>";
+    });
+    html += "</tr>";
+  }
+  html += "</tbody></table></div>";
 
-      container.innerHTML = html;
-      document.getElementById('send-button').style.display = 'block';
+  container.innerHTML = html;
+  document.getElementById('send-button').style.display = 'block';
 
-      // Force noms en majuscules et sens d’écriture correct
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.style.direction = "ltr";
-        td.style.unicodeBidi = "embed";
-        td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
-        });
-      });
-    }
+  // Forcer noms en majuscules et sens LTR
+  const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+  nomCells.forEach(td => {
+    td.style.direction = "ltr";
+    td.style.unicodeBidi = "embed";
+    td.addEventListener('input', () => {
+      const sel = window.getSelection();
+      const pos = sel.anchorOffset; // mémoriser la position du curseur
+      td.innerText = td.innerText.toUpperCase();
+      // replacer le curseur à sa position
+      const range = document.createRange();
+      range.setStart(td.firstChild || td, pos);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  });
+}
+
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
