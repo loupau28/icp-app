@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ICP</title>
-   <style>
+  <style>
     body {
       font-family: Arial, sans-serif;
       background: url('/static/FOND.png') no-repeat center center fixed;
@@ -28,9 +28,10 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr;        /* sens d'écriture gauche → droite */
-      unicode-bidi: plaintext; /* corrige les inversions possibles */
-      text-align: left;      /* alignement du texte à gauche */
+      direction: ltr;        
+      unicode-bidi: plaintext; 
+      text-align: left;      
+      font-family: monospace; /* évite inversions étranges */
     }
     input, button, select {
       margin: 10px 0;
@@ -97,14 +98,13 @@
       for (let i = 0; i < nombre; i++) {
         html += "<tr>";
         colonnes.forEach((col, j) => {
-          if (j === 0) html += `<td contenteditable="true"></td>`;
+          if (j === 0) html += `<td contenteditable="true" dir="ltr"></td>`;
           else html += `<td><input type="number" min="0"/></td>`;
         });
         html += "</tr>";
       }
       html += "</tbody></table>";
 
-      // Défilement horizontal
       container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
       document.getElementById('send-button').style.display = 'block';
 
@@ -147,7 +147,7 @@
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim().toUpperCase(); // forcer majuscule
+        const nom = cells[0].innerText.trim().toUpperCase();
         const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
         const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
         const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
