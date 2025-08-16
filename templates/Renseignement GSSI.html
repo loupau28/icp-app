@@ -25,195 +25,12 @@
     }
     td {
       background-color: #f2f2f2;
-    }<!DOCTYPE html>
-<html lang="fr" dir="ltr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GSSI</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: url('/static/FOND.png') no-repeat center center fixed;
-      background-size: cover;
-      padding: 20px;
-      color: red;
-    }
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-      width: 100%;
-      min-width: 700px;
-    }
-    th, td {
-      border: 2px solid black;
-      padding: 10px;
-      text-align: center;
-    }
-    td {
-      background-color: #f2f2f2;
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr;        
-      unicode-bidi: plaintext; 
-      text-align: left;      
-      font-family: monospace;
-    }
-    input, button, select {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-    }
-    label {
-      font-weight: bold;
-      margin-right: 10px;
-    }
-    #tableau-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-    #send-button {
-      display: none;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h2>RENSEIGNEMENT DES GSSI</h2>
-
-  <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-    <label for="SOG-select">Nom du SOG :</label>
-    <select id="SOG-select">
-      <option value="">Sélectionnez</option>
-      <option value="ADC CRETIN">ADC CRETIN</option>
-      <option value="ADC VITTET">ADC VITTET</option>
-      <option value="ADC DETAILLE">ADC DETAILLE</option>
-      <option value="ADC POUSSIN">ADC POUSSIN</option>
-      <option value="ADC GAUDET">ADC GAUDET</option>
-      <option value="ADC TRAVERT">ADC TRAVERT</option>
-    </select>
-
-    <label for="nombre">Nombre d’agents :</label>
-    <input type="number" id="nombre" min="1" max="12" />
-
-    <button onclick="genererTableau()">Générer le tableau</button>
-  </div>
-
-  <div id="tableau-container"></div>
-
-  <div id="send-button">
-    <button onclick="envoyerEmailEtSauvegarder('GSSI')">ENVOYER GSSI</button>
-    <button onclick="window.location.href='/'">RETOUR</button>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <script>
-    emailjs.init("ZJ5lL9lyhjYLHetb8");
-
-    function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
-
-      let html = "<div style='overflow-x:auto;'><table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
-
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) html += `<td contenteditable="true" dir="ltr"></td>`;
-          else html += `<td><input type="checkbox"/></td>`;
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table></div>";
-
-      container.innerHTML = html;
-      document.getElementById('send-button').style.display = 'block';
-
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
-        });
-      });
-    }
-
-    function ajouterStylesTable(table) {
-      table.style.borderCollapse = "collapse";
-      table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
-      });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
-      return table.outerHTML;
-    }
-
-    function envoyerEmailEtSauvegarder(type) {
-      const eap = document.getElementById("SOG-select").value;
-      const table = document.querySelector("table");
-      const rows = document.querySelectorAll("tbody tr");
-      const agents = [];
-
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim().toUpperCase();
-        const psc = cells[1].querySelector("input")?.checked ? 1 : 0;
-        const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
-        const excavation = cells[3].querySelector("input")?.checked ? 1 : 0;
-        agents.push({ nom, psc, crochet, excavation });
-        cells[1].innerText = psc ? "Oui" : "Non";
-        cells[2].innerText = crochet ? "Oui" : "Non";
-        cells[3].innerText = excavation ? "Oui" : "Non";
-      });
-
-      const tableClone = table.cloneNode(true);
-      const tableHTML = ajouterStylesTable(tableClone);
-
-      emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-        eap_name: eap,
-        table_html: tableHTML,
-        date_envoi: new Date().toLocaleDateString("fr-FR"),
-        type_resultat: type
-      }).then(() => {
-        alert(`Email ${type} envoyé !`);
-      }).catch(err => {
-        alert("Erreur d'envoi email : " + err.text);
-      });
-
-      fetch(`/save-${type.toLowerCase()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eap: eap,
-          date: new Date().toISOString().slice(0, 10),
-          agents: agents
-        })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Sauvegarde OK :", data))
-      .catch(err => console.error("Erreur de sauvegarde :", err));
-    }
-  </script>
-</body>
-</html>
-
-    td[contenteditable="true"] {
-      background-color: #fff;
-      direction: ltr;        /* sens d'écriture gauche → droite */
-      unicode-bidi: plaintext; /* corrige les inversions possibles */
-      text-align: left;      /* alignement du texte à gauche */
+      direction: ltr !important;      /* forcer gauche → droite */
+      unicode-bidi: embed;            /* éviter l’inversion du texte */
+      text-align: left;
     }
     input, button, select {
       margin: 10px 0;
@@ -292,7 +109,7 @@
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      // ✅ Convertir le texte des cellules "NOM" en majuscules automatiquement
+      // Convertir automatiquement le texte en majuscules correctement
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.addEventListener('input', () => {
