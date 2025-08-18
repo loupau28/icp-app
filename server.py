@@ -55,16 +55,24 @@ def init_db():
     conn.close()
 
 # -------------------- LOGIN --------------------
-@app.route("/login/<role>", methods=["GET", "POST"])
-def login(role):
-    if role not in USERS:
-        return "Rôle invalide", 400
+@app.route("/login", methods=["GET", "POST"])
+def login():
     error = None
+    username = request.form.get("username")  # identifiant choisi
+    password = request.form.get("password")
+
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        creds = USERS[role]
-        if username == creds["username"] and password == creds["password"]:
+        # Vérifie quel rôle correspond à l'identifiant choisi
+        role = None
+        for r, creds in USERS.items():
+            if creds["username"] == username:
+                role = r
+                break
+
+        if not role:
+            error = "Identifiant invalide"
+        elif password == USERS[role]["password"]:
+            # Redirection selon le rôle
             if role == "renseignement":
                 return render_template("Renseignement ICP.html")
             elif role == "consultage":
@@ -74,8 +82,10 @@ def login(role):
             elif role == "congssi":
                 return render_template("ConsultageGSSI.html")
         else:
-            error = "Identifiants incorrects"
-    return render_template("login.html", error=error, role=role)
+            error = "Mot de passe incorrect"
+
+    return render_template("login.html", error=error, username=username)
+
 
 # -------------------- ROUTES --------------------
 @app.route("/")

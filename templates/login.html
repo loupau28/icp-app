@@ -27,7 +27,7 @@
             color: #333;
             margin-bottom: 20px;
         }
-        input[type="text"], input[type="password"] {
+        select, input[type="password"] {
             width: 90%;
             padding: 10px;
             margin: 8px 0;
@@ -62,7 +62,13 @@
             <div class="error">{{ error }}</div>
         {% endif %}
         <form method="post">
-            <input type="text" name="username" placeholder="Identifiant" required>
+            <select name="username" required>
+                <option value="">-- Choisissez votre identifiant --</option>
+                <option value="EAP-TAV" {% if username=='EAP-TAV' %}selected{% endif %}>EAP-TAV</option>
+                <option value="BFOR-TAV" {% if username=='BFOR-TAV' %}selected{% endif %}>BFOR-TAV</option>
+                <option value="SOG-TAV" {% if username=='SOG-TAV' %}selected{% endif %}>SOG-TAV</option>
+            </select>
+
             <input type="password" name="password" placeholder="Mot de passe" required>
             <input type="submit" value="Se connecter">
         </form>
