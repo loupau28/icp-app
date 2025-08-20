@@ -89,7 +89,7 @@
       const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<div style='overflow-x:auto;'><table><thead><tr>";
+      let html = "<table><thead><tr>";
       colonnes.forEach(col => html += `<th>${col}</th>`);
       html += "</tr></thead><tbody>";
 
@@ -97,20 +97,37 @@
         html += "<tr>";
         colonnes.forEach((col, j) => {
           if (j === 0) {
-            html += `<td contenteditable="true" spellcheck="false" autocomplete="off"></td>`;
+            html += `<td contenteditable="true" spellcheck="false"></td>`;
           } else {
             html += `<td><input type="checkbox"/></td>`;
           }
         });
         html += "</tr>";
       }
-      html += "</tbody></table></div>";
+      html += "</tbody></table>";
 
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      // Récupérer anciens résultats pour préremplir
+      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+      nomCells.forEach(td => {
+        td.addEventListener('keyup', () => {
+          const sel = window.getSelection();
+          let pos = sel.anchorOffset;
+          td.textContent = td.textContent.toUpperCase();
+          if (!td.firstChild) td.appendChild(document.createTextNode(''));
+          pos = Math.min(pos, td.firstChild.length);
+          const range = document.createRange();
+          range.setStart(td.firstChild, pos);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+      });
+
+      // Préremplir anciens résultats
       const eap = document.getElementById("SOG-select").value;
+      if (!eap) return;
       try {
         const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
         if (res.ok) {
@@ -129,25 +146,6 @@
       } catch (err) {
         console.error("Erreur récupération anciens résultats :", err);
       }
-
-      // Forcer noms en majuscules
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.style.direction = "ltr";
-        td.style.unicodeBidi = "embed";
-        td.addEventListener('keyup', () => {
-          const sel = window.getSelection();
-          const pos = sel.anchorOffset;
-          td.textContent = td.textContent.toUpperCase();
-          const range = document.createRange();
-          if (td.firstChild) {
-            range.setStart(td.firstChild, Math.min(pos, td.firstChild.length));
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
-        });
-      });
     }
 
     function ajouterStylesTable(table) {
@@ -174,7 +172,6 @@
       const rows = document.querySelectorAll("tbody tr");
       const agents = [];
 
-      // Collecte des nouveaux résultats
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
         const nom = cells[0].innerText.trim();
@@ -187,7 +184,6 @@
         cells[3].innerText = excavation ? "Oui" : "Non";
       });
 
-      // Récupération des anciens résultats
       let anciensResultats = {};
       try {
         const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
@@ -201,7 +197,6 @@
         console.error("Erreur récupération anciens résultats :", err);
       }
 
-      // Fusion anciens + nouveaux résultats
       const agentsFusionnes = agents.map(agent => {
         const ancien = anciensResultats[agent.nom.toUpperCase()] || {};
         return {
@@ -237,7 +232,6 @@
         });
       });
 
-      // Sauvegarde dans la BDD
       fetch(`/save-gssi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

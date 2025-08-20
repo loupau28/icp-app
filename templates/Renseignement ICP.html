@@ -86,7 +86,8 @@
 
     function genererTableau() {
       const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
+      const nombreInput = document.getElementById('nombre').value;
+      const nombre = nombreInput ? parseInt(nombreInput, 10) : 0;
       const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
@@ -107,16 +108,22 @@
       }
       html += "</tbody></table>";
 
-      container.innerHTML = `<div style="overflow-x:auto;">${html}</div>`;
+      // Wrapper pour compatibilité Safari
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = html;
+      container.innerHTML = '';
+      container.appendChild(wrapper);
       document.getElementById('send-button').style.display = 'block';
 
-      // Compatibilité Safari iOS
+      // Compatibilité Safari iOS pour contenteditable
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.style.direction = 'ltr';
         td.style.unicodeBidi = 'embed';
-        td.addEventListener('keyup', () => {
+        td.addEventListener('input', () => {
           const sel = window.getSelection();
+          if (!sel || !sel.rangeCount) return;
           const pos = sel.anchorOffset;
           td.textContent = td.textContent.toUpperCase();
           const range = document.createRange();
@@ -148,79 +155,75 @@
       return table.outerHTML;
     }
 
-   function envoyerEmailEtSauvegarder(type = "ICP") {
-  const eap = document.getElementById("EAP-select").value;
-  const table = document.querySelector("table");
-  const rows = document.querySelectorAll("tbody tr");
-  const agents = [];
+    function envoyerEmailEtSauvegarder(type = "ICP") {
+      const eap = document.getElementById("EAP-select").value;
+      const table = document.querySelector("table");
+      const rows = document.querySelectorAll("tbody tr");
+      const agents = [];
 
-  rows.forEach(row => {
-    const cells = row.querySelectorAll("td");
-    const nom = cells[0].textContent.trim().toUpperCase();
-    const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
-    const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
-    const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
-    const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
-    const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
-    const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const nom = cells[0].textContent.trim().toUpperCase();
+        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
+        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
+        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
+        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
+        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
+        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
 
-    agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
 
-    for (let i = 1; i < cells.length; i++) {
-      const val = cells[i].querySelector("input")?.value || "";
-      cells[i].textContent = val;
+        for (let i = 1; i < cells.length; i++) {
+          const val = cells[i].querySelector("input")?.value || "";
+          cells[i].textContent = val;
+        }
+      });
+
+      const tableClone = table.cloneNode(true);
+      const tableHTML = ajouterStylesTable(tableClone);
+
+      let destinataires = [];
+      if (type === "ICP") {
+        destinataires = [
+          "florent.skirlo@sdis95.fr",
+          "jean-phillippe.cretin@sdis95.fr"
+        ];
+      } else if (type === "GSSI") {
+        destinataires = [
+          "florent.skirlo@sdis95.fr",
+          "jean-phillippe.cretin@sdis95.fr",
+          "lucie.palay@sdis95.fr",
+          "elina.maugeon@sdis95.fr"
+        ];
+      }
+
+      destinataires.forEach(email => {
+        emailjs.send("SOGTAV", "ENVOI_TABLEAU", {
+          to_email: email,
+          eap_name: eap,
+          table_html: tableHTML,
+          date_envoi: new Date().toLocaleDateString("fr-FR"),
+          type_resultat: type
+        }).then(() => {
+          console.log(`Email ${type} envoyé à ${email} !`);
+        }).catch(err => {
+          console.error("Erreur d'envoi email : " + err.text);
+        });
+      });
+
+      fetch(`/save-${type.toLowerCase()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eap: eap,
+          date: new Date().toISOString().slice(0, 10),
+          agents: agents
+        })
+      })
+      .then(res => res.json())
+      .then(data => console.log("Sauvegarde OK :", data))
+      .catch(err => console.error("Erreur de sauvegarde :", err));
     }
-  });
-
-  const tableClone = table.cloneNode(true);
-  const tableHTML = ajouterStylesTable(tableClone);
-
-  // 🎯 Liste des destinataires selon ICP ou GSSI
-  let destinataires = [];
-  if (type === "ICP") {
-    destinataires = [
-      "florent.skirlo@sdis95.fr",
-      "jean-phillippe.cretin@sdis95.fr"
-    ];
-  } else if (type === "GSSI") {
-    destinataires = [
-      "florent.skirlo@sdis95.fr",
-      "jean-phillippe.cretin@sdis95.fr",
-      "lucie.palay@sdis95.fr",
-      "elina.maugeon@sdis95.fr"
-    ];
-  }
-
-  // On envoie le même email à tous les destinataires
-  destinataires.forEach(email => {
-    emailjs.send("SOGTAV", "ENVOI_TABLEAU", {
-      to_email: email,  // doit correspondre à {{to_email}} dans ton template EmailJS
-      eap_name: eap,
-      table_html: tableHTML,
-      date_envoi: new Date().toLocaleDateString("fr-FR"),
-      type_resultat: type
-    }).then(() => {
-      console.log(`Email ${type} envoyé à ${email} !`);
-    }).catch(err => {
-      console.error("Erreur d'envoi email : " + err.text);
-    });
-  });
-
-  fetch(`/save-${type.toLowerCase()}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      eap: eap,
-      date: new Date().toISOString().slice(0, 10),
-      agents: agents
-    })
-  })
-  .then(res => res.json())
-  .then(data => console.log("Sauvegarde OK :", data))
-  .catch(err => console.error("Erreur de sauvegarde :", err));
-}
-
-
   </script>
 </body>
 </html>
