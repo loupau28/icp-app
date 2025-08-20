@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <title>Choix du rôle</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        body { font-family: Arial, sans-serif; background-color: #f9f9f9; }
+        .container { width: 400px; margin: 100px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+        h2 { margin-bottom: 20px; }
+        form { display: flex; flex-direction: column; }
+        select { padding: 8px; margin-bottom: 20px; }
+        input[type=submit] { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        input[type=submit]:hover { background-color: #45a049; }
     </style>
 </head>
 <body>
-    <h1>Bonjour {{ username }}</h1>
-    <p>Choisissez le rôle avec lequel vous souhaitez vous connecter :</p>
-
-    <form method="post" action="{{ url_for('rediriger_role') }}">
+<div class="container">
+    <h2>Bonjour {{ username }}, choisissez votre rôle :</h2>
+    <form method="POST" action="{{ url_for('rediriger_role') }}">
         <input type="hidden" name="username" value="{{ username }}">
-        {% set role_labels = {
-            'consultage': 'Consultage ICP',
-            'congssi': 'Consultage GSSI',
-            'gssi': 'Renseignement GSSI',
-            'renseignement': 'Renseignement ICP'
-        } %}
-        {% for role in roles %}
-            <button type="submit" name="role" value="{{ role }}">{{ role_labels[role] }}</button>
-        {% endfor %}
+        <select name="role" required>
+            {% for role in roles %}
+                <option value="{{ role }}">{{ role }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Valider">
     </form>
+</div>
 </body>
 </html>

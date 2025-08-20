@@ -17,6 +17,7 @@
       margin-top: 20px;
       width: 100%;
       min-width: 700px;
+      table-layout: fixed;
     }
     th, td {
       border: 2px solid black;
@@ -86,55 +87,66 @@
 
     function genererTableau() {
       const container = document.getElementById('tableau-container');
-      const nombreInput = document.getElementById('nombre').value;
-      const nombre = nombreInput ? parseInt(nombreInput, 10) : 0;
-      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      const nombre = parseInt(document.getElementById('nombre').value, 10);
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
+      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
 
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) {
-            html += `<td contenteditable="true" spellcheck="false" autocomplete="off"></td>`;
-          } else {
-            html += `<td><input type="number" min="0" inputmode="numeric" pattern="[0-9]*"/></td>`;
-          }
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table>";
-
-      // Wrapper pour compatibilité Safari
-      const wrapper = document.createElement('div');
-      wrapper.style.overflowX = 'auto';
-      wrapper.innerHTML = html;
+      // Supprimer ancien tableau
       container.innerHTML = '';
-      container.appendChild(wrapper);
-      document.getElementById('send-button').style.display = 'block';
 
-      // Compatibilité Safari iOS pour contenteditable
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.style.direction = 'ltr';
-        td.style.unicodeBidi = 'embed';
-        td.addEventListener('input', () => {
-          const sel = window.getSelection();
-          if (!sel || !sel.rangeCount) return;
-          const pos = sel.anchorOffset;
-          td.textContent = td.textContent.toUpperCase();
-          const range = document.createRange();
-          if (td.firstChild) {
-            range.setStart(td.firstChild, Math.min(pos, td.firstChild.length));
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
-        });
+      // Créer la table
+      const table = document.createElement('table');
+
+      // THEAD
+      const thead = document.createElement('thead');
+      const trHead = document.createElement('tr');
+      colonnes.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col;
+        trHead.appendChild(th);
       });
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      // TBODY
+      const tbody = document.createElement('tbody');
+      for (let i = 0; i < nombre; i++) {
+        const tr = document.createElement('tr');
+        colonnes.forEach((col, j) => {
+          const td = document.createElement('td');
+          if (j === 0) {
+            td.contentEditable = "true";
+            td.spellcheck = false;
+            td.style.direction = 'ltr';
+            td.style.unicodeBidi = 'embed';
+            td.addEventListener('input', () => {
+              const sel = window.getSelection();
+              if (!sel || !sel.rangeCount) return;
+              const pos = sel.anchorOffset;
+              td.textContent = td.textContent.toUpperCase();
+              const range = document.createRange();
+              if (td.firstChild) {
+                range.setStart(td.firstChild, Math.min(pos, td.firstChild.length));
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            });
+          } else {
+            const input = document.createElement('input');
+            input.type = "number";
+            input.min = "0";
+            td.appendChild(input);
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+
+      container.appendChild(table);
+      document.getElementById('send-button').style.display = 'block';
     }
 
     function ajouterStylesTable(table) {

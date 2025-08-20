@@ -2,76 +2,31 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion EAP-TAV</title>
+    <title>Login</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: url('/static/FOND.png') no-repeat center center fixed;
-            background-size: cover;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            width: 300px;
-            text-align: center;
-        }
-        h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        select, input[type="password"] {
-            width: 90%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-        }
-        input[type="submit"] {
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 10px;
-            width: 100%;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        input[type="submit"]:hover {
-            background-color: darkred;
-        }
-        .error {
-            color: red;
-            margin-bottom: 10px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f2f2f2; }
+        .container { width: 300px; margin: 100px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+        input[type=text], input[type=password] { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+        input[type=submit] { width: 100%; padding: 8px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        input[type=submit]:hover { background-color: #45a049; }
+        .error { color: red; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Connexion</h2>
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-        <form method="post">
-            <select name="username" required>
-                <option value="">-- Choisissez votre identifiant --</option>
-                <option value="EAP-TAV" {% if username=='EAP-TAV' %}selected{% endif %}>EAP-TAV</option>
-                <option value="BFOR-TAV" {% if username=='BFOR-TAV' %}selected{% endif %}>BFOR-TAV</option>
-                <option value="SOG-TAV" {% if username=='SOG-TAV' %}selected{% endif %}>SOG-TAV</option>
-            </select>
+<div class="container">
+    <h2>Connexion</h2>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        <label for="username">Identifiant:</label>
+        <input type="text" id="username" name="username" required>
 
-            <input type="password" name="password" placeholder="Mot de passe" required>
-            <input type="submit" value="Se connecter">
-        </form>
-    </div>
+        <label for="password">Mot de passe:</label>
+        <input type="password" id="password" name="password" required>
+
+        <input type="submit" value="Se connecter">
+    </form>
+</div>
 </body>
 </html>
