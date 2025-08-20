@@ -105,10 +105,10 @@
         html += "</tr>";
       }
       html += "</tbody></table>";
-
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
+      // Mettre le nom en majuscule automatiquement
       const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
         td.addEventListener('keyup', () => {
@@ -122,6 +122,9 @@
           range.collapse(true);
           sel.removeAllRanges();
           sel.addRange(range);
+        });
+        td.addEventListener('focus', () => {
+          setTimeout(() => td.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
         });
       });
 
@@ -146,13 +149,6 @@
       } catch (err) {
         console.error("Erreur récupération anciens résultats :", err);
       }
-
-      // Fix Safari/iOS : scroll automatique sur focus
-      nomCells.forEach(td => {
-        td.addEventListener('focus', () => {
-          setTimeout(() => td.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
-        });
-      });
     }
 
     document.getElementById("generer-btn").addEventListener("click", genererTableau);
@@ -193,6 +189,7 @@
         cells[3].innerText = excavation ? "Oui" : "Non";
       });
 
+      // Fusion avec anciens résultats
       let anciensResultats = {};
       try {
         const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);

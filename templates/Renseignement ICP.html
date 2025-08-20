@@ -30,8 +30,6 @@
     td[contenteditable="true"] {
       background-color: #fff;
       text-align: left;
-      direction: ltr;
-      unicode-bidi: embed;
     }
     input[type="number"] {
       width: 80px;
@@ -122,22 +120,14 @@
             td.contentEditable = "true";
             td.spellcheck = false;
             td.addEventListener('input', () => {
-              const sel = window.getSelection();
-              if (!sel || !sel.rangeCount) return;
-              const pos = sel.anchorOffset;
               td.textContent = td.textContent.toUpperCase();
-              const range = document.createRange();
-              if (td.firstChild) {
-                range.setStart(td.firstChild, Math.min(pos, td.firstChild.length));
-                range.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(range);
-              }
             });
           } else {
             const input = document.createElement('input');
             input.type = "number";
             input.min = "0";
+            input.style.width = "80px";
+            input.style.textAlign = "center";
             td.appendChild(input);
           }
           tr.appendChild(td);
@@ -147,6 +137,8 @@
       table.appendChild(tbody);
 
       container.appendChild(table);
+
+      // Afficher les boutons après génération
       document.getElementById('send-button').style.display = 'flex';
     }
 
