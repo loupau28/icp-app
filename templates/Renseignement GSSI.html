@@ -26,12 +26,6 @@
     td {
       background-color: #f2f2f2;
     }
-    td[contenteditable="true"] {
-      background-color: #fff;
-      direction: ltr;
-      unicode-bidi: embed;
-      text-align: left;
-    }
     input, button, select {
       margin: 10px 0;
       padding: 10px;
@@ -97,7 +91,7 @@
         html += "<tr>";
         colonnes.forEach((col, j) => {
           if (j === 0) {
-            html += `<td contenteditable="true" spellcheck="false"></td>`;
+            html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%; text-transform: uppercase;"></td>`;
           } else {
             html += `<td><input type="checkbox"/></td>`;
           }
@@ -105,26 +99,25 @@
         html += "</tr>";
       }
       html += "</tbody></table>";
+
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      // Mettre le nom en majuscule automatiquement
-      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-      nomCells.forEach(td => {
-        td.addEventListener('keyup', () => {
-          const sel = window.getSelection();
-          let pos = sel.anchorOffset;
-          td.textContent = td.textContent.toUpperCase();
-          if (!td.firstChild) td.appendChild(document.createTextNode(''));
-          pos = Math.min(pos, td.firstChild.length);
-          const range = document.createRange();
-          range.setStart(td.firstChild, pos);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
+      const nomInputs = container.querySelectorAll('.nom-cell');
+      nomInputs.forEach(input => {
+        input.addEventListener('input', () => {
+          const start = input.selectionStart;
+          const end = input.selectionEnd;
+          input.value = input.value.toUpperCase();
+          input.setSelectionRange(start, end);
         });
-        td.addEventListener('focus', () => {
-          setTimeout(() => td.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+
+        input.addEventListener('focus', () => {
+          setTimeout(() => {
+            const rect = input.getBoundingClientRect();
+            const offset = window.pageYOffset + rect.top - 100;
+            window.scrollTo({ top: offset, behavior: 'smooth' });
+          }, 200);
         });
       });
 
@@ -137,7 +130,8 @@
           const anciens = await res.json();
           const rows = container.querySelectorAll('tbody tr');
           rows.forEach(row => {
-            const nom = row.cells[0].innerText.trim().toUpperCase();
+            const nomInput = row.querySelector('.nom-cell');
+            const nom = nomInput.value.trim().toUpperCase();
             const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
             if (ancien) {
               row.cells[1].querySelector("input").checked = ancien.psc === 1;
@@ -179,7 +173,7 @@
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        const nom = cells[0].innerText.trim();
+        const nom = cells[0].querySelector('input').value.trim();
         const psc = cells[1].querySelector("input")?.checked ? 1 : 0;
         const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
         const excavation = cells[3].querySelector("input")?.checked ? 1 : 0;
@@ -189,7 +183,6 @@
         cells[3].innerText = excavation ? "Oui" : "Non";
       });
 
-      // Fusion avec anciens résultats
       let anciensResultats = {};
       try {
         const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);

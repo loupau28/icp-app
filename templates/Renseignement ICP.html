@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: url('/static/FOND.png') no-repeat center center fixed;
+      background: url('/static/FOND.png') no-repeat center center;
       background-size: cover;
       padding: 20px;
       color: red;
@@ -74,7 +74,7 @@
     </select>
 
     <label for="nombre">Nombre d’agents :</label>
-    <input type="number" id="nombre" min="1" max="12" />
+    <input type="number" id="nombre" min="1" max="12" pattern="[0-9]*" />
 
     <button onclick="genererTableau()">Générer le tableau</button>
   </div>
@@ -90,123 +90,138 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value, 10);
+      var container = document.getElementById('tableau-container');
+      var nombre = parseInt(document.getElementById('nombre').value, 10);
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
       container.innerHTML = '';
 
-      const table = document.createElement('table');
+      var table = document.createElement('table');
 
       // THEAD
-      const thead = document.createElement('thead');
-      const trHead = document.createElement('tr');
-      colonnes.forEach(col => {
-        const th = document.createElement('th');
-        th.textContent = col;
+      var thead = document.createElement('thead');
+      var trHead = document.createElement('tr');
+      for (var c = 0; c < colonnes.length; c++) {
+        var th = document.createElement('th');
+        th.textContent = colonnes[c];
         trHead.appendChild(th);
-      });
+      }
       thead.appendChild(trHead);
       table.appendChild(thead);
 
       // TBODY
-      const tbody = document.createElement('tbody');
-      for (let i = 0; i < nombre; i++) {
-        const tr = document.createElement('tr');
-        colonnes.forEach((col, j) => {
-          const td = document.createElement('td');
+      var tbody = document.createElement('tbody');
+      for (var i = 0; i < nombre; i++) {
+        var tr = document.createElement('tr');
+        for (var j = 0; j < colonnes.length; j++) {
+          var td = document.createElement('td');
           if (j === 0) {
             td.contentEditable = "true";
             td.spellcheck = false;
-            td.addEventListener('input', () => {
-              td.textContent = td.textContent.toUpperCase();
-            });
+            td.addEventListener('input', (function(tdCopy) {
+              return function() { tdCopy.textContent = tdCopy.textContent.toUpperCase(); };
+            })(td));
           } else {
-            const input = document.createElement('input');
+            var input = document.createElement('input');
             input.type = "number";
             input.min = "0";
             input.style.width = "80px";
             input.style.textAlign = "center";
+            input.pattern = "[0-9]*";
             td.appendChild(input);
           }
           tr.appendChild(td);
-        });
+        }
         tbody.appendChild(tr);
       }
       table.appendChild(tbody);
-
       container.appendChild(table);
 
-      // Afficher les boutons après génération
       document.getElementById('send-button').style.display = 'flex';
     }
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
-      });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
+      var ths = table.querySelectorAll("th");
+      for (var i = 0; i < ths.length; i++) {
+        ths[i].style.border = "2px solid black";
+        ths[i].style.padding = "10px";
+        ths[i].style.textAlign = "center";
+        ths[i].style.backgroundColor = "#f2f2f2";
+      }
+      var tds = table.querySelectorAll("td");
+      for (var i = 0; i < tds.length; i++) {
+        tds[i].style.border = "2px solid black";
+        tds[i].style.padding = "10px";
+        tds[i].style.textAlign = "center";
+        tds[i].style.backgroundColor = "#f2f2f2";
+      }
       return table.outerHTML;
     }
 
-    function envoyerEmailEtSauvegarder(type = "ICP") {
-      const eap = document.getElementById("EAP-select").value;
-      const table = document.querySelector("table");
+    function envoyerEmailEtSauvegarder(type) {
+      type = type || "ICP";
+      var eap = document.getElementById("EAP-select").value;
+      var table = document.querySelector("table");
       if (!table) return;
 
-      const rows = table.querySelectorAll("tbody tr");
-      const agents = [];
+      var rows = table.querySelectorAll("tbody tr");
+      var agents = [];
 
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        const nom = cells[0].textContent.trim().toUpperCase();
-        const stats = Array.from(cells).slice(1).map(td => parseInt(td.querySelector("input")?.value) || 0);
-
-        agents.push({ nom, pompes: stats[0], tractions: stats[1], killy: stats[2], gainage: stats[3], luc_leger: stats[4], souplesse: stats[5] });
-
-        // Remplacer input par valeur affichée
-        for (let i = 1; i < cells.length; i++) {
-          cells[i].textContent = stats[i-1];
+      for (var i = 0; i < rows.length; i++) {
+        var cells = rows[i].querySelectorAll("td");
+        var nom = cells[0].textContent.trim().toUpperCase();
+        var stats = [];
+        for (var j = 1; j < cells.length; j++) {
+          var input = cells[j].querySelector("input");
+          stats.push(parseInt(input ? input.value : 0) || 0);
+          // remplacer input par valeur affichée
+          cells[j].textContent = stats[j-1];
         }
-      });
+        agents.push({
+          nom: nom,
+          pompes: stats[0],
+          tractions: stats[1],
+          killy: stats[2],
+          gainage: stats[3],
+          luc_leger: stats[4],
+          souplesse: stats[5]
+        });
+      }
 
-      const tableClone = table.cloneNode(true);
-      const tableHTML = ajouterStylesTable(tableClone);
+      var tableClone = table.cloneNode(true);
+      var tableHTML = ajouterStylesTable(tableClone);
 
-      const destinataires = type === "ICP"
-        ? ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr"]
-        : ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr", "lucie.palay@sdis95.fr", "elina.maugeon@sdis95.fr"];
+      var destinataires;
+      if (type === "ICP") {
+        destinataires = ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr"];
+      } else {
+        destinataires = ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr", "lucie.palay@sdis95.fr", "elina.maugeon@sdis95.fr"];
+      }
 
-      destinataires.forEach(email => {
+      for (var i = 0; i < destinataires.length; i++) {
         emailjs.send("SOGTAV", "ENVOI_TABLEAU", {
-          to_email: email,
+          to_email: destinataires[i],
           eap_name: eap,
           table_html: tableHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: type
-        }).then(() => console.log(`Email ${type} envoyé à ${email}`))
-          .catch(err => console.error("Erreur d'envoi email :", err.text));
-      });
+        }).then(function() { console.log("Email envoyé"); })
+          .catch(function(err) { console.error("Erreur d'envoi email :", err.text); });
+      }
 
-      fetch(`/save-${type.toLowerCase()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eap, date: new Date().toISOString().slice(0, 10), agents })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Sauvegarde OK :", data))
-      .catch(err => console.error("Erreur de sauvegarde :", err));
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/save-" + type.toLowerCase(), true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) console.log("Sauvegarde OK :", xhr.responseText);
+          else console.error("Erreur de sauvegarde :", xhr.responseText);
+        }
+      };
+      xhr.send(JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0, 10), agents: agents }));
     }
   </script>
 </body>
