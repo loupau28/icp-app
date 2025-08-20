@@ -69,24 +69,19 @@
     <label for="nombre">Nombre d’agents :</label>
     <input type="number" id="nombre" min="1" max="12" />
 
-    <button id="generate-btn">Générer le tableau</button>
+    <button id="generer-btn">Générer le tableau</button>
   </div>
 
   <div id="tableau-container"></div>
 
   <div id="send-button">
-    <button id="send-btn">ENVOYER GSSI</button>
+    <button onclick="envoyerGSSIetSauvegarder()">ENVOYER GSSI</button>
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('generate-btn').addEventListener('click', genererTableau);
-      document.getElementById('send-btn').addEventListener('click', envoyerGSSIetSauvegarder);
-    });
 
     async function genererTableau() {
       const container = document.getElementById('tableau-container');
@@ -114,22 +109,30 @@
       container.innerHTML = html;
       document.getElementById('send-button').style.display = 'block';
 
-      const nomCells = Array.from(container.querySelectorAll('tbody td[contenteditable="true"]'));
+      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
       nomCells.forEach(td => {
-        td.addEventListener('input', () => {
-          td.innerText = td.innerText.toUpperCase();
+        td.addEventListener('keyup', () => {
+          const sel = window.getSelection();
+          let pos = sel.anchorOffset;
+          td.textContent = td.textContent.toUpperCase();
+          if (!td.firstChild) td.appendChild(document.createTextNode(''));
+          pos = Math.min(pos, td.firstChild.length);
+          const range = document.createRange();
+          range.setStart(td.firstChild, pos);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
         });
       });
 
       // Préremplir anciens résultats
       const eap = document.getElementById("SOG-select").value;
       if (!eap) return;
-
       try {
         const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
         if (res.ok) {
           const anciens = await res.json();
-          const rows = Array.from(container.querySelectorAll('tbody tr'));
+          const rows = container.querySelectorAll('tbody tr');
           rows.forEach(row => {
             const nom = row.cells[0].innerText.trim().toUpperCase();
             const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
@@ -143,7 +146,16 @@
       } catch (err) {
         console.error("Erreur récupération anciens résultats :", err);
       }
+
+      // Fix Safari/iOS : scroll automatique sur focus
+      nomCells.forEach(td => {
+        td.addEventListener('focus', () => {
+          setTimeout(() => td.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+        });
+      });
     }
+
+    document.getElementById("generer-btn").addEventListener("click", genererTableau);
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";

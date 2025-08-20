@@ -29,9 +29,14 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
+      text-align: left;
       direction: ltr;
       unicode-bidi: embed;
-      text-align: left;
+    }
+    input[type="number"] {
+      width: 80px;
+      padding: 5px;
+      text-align: center;
     }
     input, button, select {
       margin: 10px 0;
@@ -49,6 +54,7 @@
     #send-button {
       display: none;
       margin-top: 20px;
+      gap: 10px;
     }
   </style>
 </head>
@@ -76,7 +82,7 @@
   </div>
 
   <div id="tableau-container"></div>
-  <div id="send-button">
+  <div id="send-button" style="display: flex;">
     <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
@@ -91,11 +97,8 @@
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
       const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-
-      // Supprimer ancien tableau
       container.innerHTML = '';
 
-      // Créer la table
       const table = document.createElement('table');
 
       // THEAD
@@ -118,8 +121,6 @@
           if (j === 0) {
             td.contentEditable = "true";
             td.spellcheck = false;
-            td.style.direction = 'ltr';
-            td.style.unicodeBidi = 'embed';
             td.addEventListener('input', () => {
               const sel = window.getSelection();
               if (!sel || !sel.rangeCount) return;
@@ -146,7 +147,7 @@
       table.appendChild(tbody);
 
       container.appendChild(table);
-      document.getElementById('send-button').style.display = 'block';
+      document.getElementById('send-button').style.display = 'flex';
     }
 
     function ajouterStylesTable(table) {
@@ -170,44 +171,30 @@
     function envoyerEmailEtSauvegarder(type = "ICP") {
       const eap = document.getElementById("EAP-select").value;
       const table = document.querySelector("table");
-      const rows = document.querySelectorAll("tbody tr");
+      if (!table) return;
+
+      const rows = table.querySelectorAll("tbody tr");
       const agents = [];
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
         const nom = cells[0].textContent.trim().toUpperCase();
-        const pompes = parseInt(cells[1].querySelector("input")?.value) || 0;
-        const tractions = parseInt(cells[2].querySelector("input")?.value) || 0;
-        const killy = parseInt(cells[3].querySelector("input")?.value) || 0;
-        const gainage = parseInt(cells[4].querySelector("input")?.value) || 0;
-        const luc_leger = parseInt(cells[5].querySelector("input")?.value) || 0;
-        const souplesse = parseInt(cells[6].querySelector("input")?.value) || 0;
+        const stats = Array.from(cells).slice(1).map(td => parseInt(td.querySelector("input")?.value) || 0);
 
-        agents.push({ nom, pompes, tractions, killy, gainage, luc_leger, souplesse });
+        agents.push({ nom, pompes: stats[0], tractions: stats[1], killy: stats[2], gainage: stats[3], luc_leger: stats[4], souplesse: stats[5] });
 
+        // Remplacer input par valeur affichée
         for (let i = 1; i < cells.length; i++) {
-          const val = cells[i].querySelector("input")?.value || "";
-          cells[i].textContent = val;
+          cells[i].textContent = stats[i-1];
         }
       });
 
       const tableClone = table.cloneNode(true);
       const tableHTML = ajouterStylesTable(tableClone);
 
-      let destinataires = [];
-      if (type === "ICP") {
-        destinataires = [
-          "florent.skirlo@sdis95.fr",
-          "jean-phillippe.cretin@sdis95.fr"
-        ];
-      } else if (type === "GSSI") {
-        destinataires = [
-          "florent.skirlo@sdis95.fr",
-          "jean-phillippe.cretin@sdis95.fr",
-          "lucie.palay@sdis95.fr",
-          "elina.maugeon@sdis95.fr"
-        ];
-      }
+      const destinataires = type === "ICP"
+        ? ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr"]
+        : ["florent.skirlo@sdis95.fr", "jean-phillippe.cretin@sdis95.fr", "lucie.palay@sdis95.fr", "elina.maugeon@sdis95.fr"];
 
       destinataires.forEach(email => {
         emailjs.send("SOGTAV", "ENVOI_TABLEAU", {
@@ -216,21 +203,14 @@
           table_html: tableHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: type
-        }).then(() => {
-          console.log(`Email ${type} envoyé à ${email} !`);
-        }).catch(err => {
-          console.error("Erreur d'envoi email : " + err.text);
-        });
+        }).then(() => console.log(`Email ${type} envoyé à ${email}`))
+          .catch(err => console.error("Erreur d'envoi email :", err.text));
       });
 
       fetch(`/save-${type.toLowerCase()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eap: eap,
-          date: new Date().toISOString().slice(0, 10),
-          agents: agents
-        })
+        body: JSON.stringify({ eap, date: new Date().toISOString().slice(0, 10), agents })
       })
       .then(res => res.json())
       .then(data => console.log("Sauvegarde OK :", data))
