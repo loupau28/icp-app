@@ -1,0 +1,18 @@
+<h2>Bienvenue {{ username }}</h2>
+<p>Veuillez choisir votre espace :</p>
+
+<ul>
+  {% for role in roles %}
+    <li>
+      <form method="post" action="{{ url_for('rediriger_role') }}">
+        <input type="hidden" name="role" value="{{ role }}">
+        <button type="submit">
+          {% if role == "consultage" %}Consultage ICP{% endif %}
+          {% if role == "congssi" %}Consultage GSSI{% endif %}
+          {% if role == "renseignement" %}Renseignement ICP{% endif %}
+          {% if role == "gssi" %}Renseignement GSSI{% endif %}
+        </button>
+      </form>
+    </li>
+  {% endfor %}
+</ul>

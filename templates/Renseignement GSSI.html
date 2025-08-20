@@ -28,7 +28,7 @@
     }
     td[contenteditable="true"] {
       background-color: #fff;
-      direction: ltr !important;
+      direction: ltr;
       unicode-bidi: embed;
       text-align: left;
     }
@@ -75,7 +75,7 @@
   <div id="tableau-container"></div>
 
   <div id="send-button">
-    <button onclick="envoyerEmailEtSauvegarder('GSSI')">ENVOYER GSSI</button>
+    <button onclick="envoyerGSSIetSauvegarder()">ENVOYER GSSI</button>
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
@@ -83,51 +83,72 @@
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
-    function genererTableau() {
-  const container = document.getElementById('tableau-container');
-  const nombre = parseInt(document.getElementById('nombre').value);
-  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+    async function genererTableau() {
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value);
+      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-  let html = "<div style='overflow-x:auto;'><table><thead><tr>";
-  colonnes.forEach(col => html += `<th>${col}</th>`);
-  html += "</tr></thead><tbody>";
+      let html = "<div style='overflow-x:auto;'><table><thead><tr>";
+      colonnes.forEach(col => html += `<th>${col}</th>`);
+      html += "</tr></thead><tbody>";
 
-  for (let i = 0; i < nombre; i++) {
-    html += "<tr>";
-    colonnes.forEach((col, j) => {
-      if (j === 0) {
-        html += `<td contenteditable="true"></td>`;
-      } else {
-        html += `<td><input type="checkbox"/></td>`;
+      for (let i = 0; i < nombre; i++) {
+        html += "<tr>";
+        colonnes.forEach((col, j) => {
+          if (j === 0) {
+            html += `<td contenteditable="true" spellcheck="false" autocomplete="off"></td>`;
+          } else {
+            html += `<td><input type="checkbox"/></td>`;
+          }
+        });
+        html += "</tr>";
       }
-    });
-    html += "</tr>";
-  }
-  html += "</tbody></table></div>";
+      html += "</tbody></table></div>";
 
-  container.innerHTML = html;
-  document.getElementById('send-button').style.display = 'block';
+      container.innerHTML = html;
+      document.getElementById('send-button').style.display = 'block';
 
-  // Forcer noms en majuscules et sens LTR
-  const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
-  nomCells.forEach(td => {
-    td.style.direction = "ltr";
-    td.style.unicodeBidi = "embed";
-    td.addEventListener('input', () => {
-      const sel = window.getSelection();
-      const pos = sel.anchorOffset; // mémoriser la position du curseur
-      td.innerText = td.innerText.toUpperCase();
-      // replacer le curseur à sa position
-      const range = document.createRange();
-      range.setStart(td.firstChild || td, pos);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    });
-  });
-}
+      // Récupérer anciens résultats pour préremplir
+      const eap = document.getElementById("SOG-select").value;
+      try {
+        const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
+        if (res.ok) {
+          const anciens = await res.json();
+          const rows = container.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const nom = row.cells[0].innerText.trim().toUpperCase();
+            const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
+            if (ancien) {
+              row.cells[1].querySelector("input").checked = ancien.psc === 1;
+              row.cells[2].querySelector("input").checked = ancien.crochet === 1;
+              row.cells[3].querySelector("input").checked = ancien.excavation === 1;
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Erreur récupération anciens résultats :", err);
+      }
 
+      // Forcer noms en majuscules
+      const nomCells = container.querySelectorAll('tbody td[contenteditable="true"]');
+      nomCells.forEach(td => {
+        td.style.direction = "ltr";
+        td.style.unicodeBidi = "embed";
+        td.addEventListener('keyup', () => {
+          const sel = window.getSelection();
+          const pos = sel.anchorOffset;
+          td.textContent = td.textContent.toUpperCase();
+          const range = document.createRange();
+          if (td.firstChild) {
+            range.setStart(td.firstChild, Math.min(pos, td.firstChild.length));
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        });
+      });
+    }
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
@@ -147,12 +168,13 @@
       return table.outerHTML;
     }
 
-    function envoyerEmailEtSauvegarder(type) {
+    async function envoyerGSSIetSauvegarder() {
       const eap = document.getElementById("SOG-select").value;
       const table = document.querySelector("table");
       const rows = document.querySelectorAll("tbody tr");
       const agents = [];
 
+      // Collecte des nouveaux résultats
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
         const nom = cells[0].innerText.trim();
@@ -165,27 +187,64 @@
         cells[3].innerText = excavation ? "Oui" : "Non";
       });
 
+      // Récupération des anciens résultats
+      let anciensResultats = {};
+      try {
+        const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
+        if (res.ok) {
+          const data = await res.json();
+          data.forEach(agent => {
+            anciensResultats[agent.nom.toUpperCase()] = agent;
+          });
+        }
+      } catch (err) {
+        console.error("Erreur récupération anciens résultats :", err);
+      }
+
+      // Fusion anciens + nouveaux résultats
+      const agentsFusionnes = agents.map(agent => {
+        const ancien = anciensResultats[agent.nom.toUpperCase()] || {};
+        return {
+          nom: agent.nom,
+          psc: agent.psc || ancien.psc || 0,
+          crochet: agent.crochet || ancien.crochet || 0,
+          excavation: agent.excavation || ancien.excavation || 0
+        };
+      });
+
       const tableClone = table.cloneNode(true);
       const tableHTML = ajouterStylesTable(tableClone);
 
-      emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-        eap_name: eap,
-        table_html: tableHTML,
-        date_envoi: new Date().toLocaleDateString("fr-FR"),
-        type_resultat: type
-      }).then(() => {
-        alert(`Email ${type} envoyé !`);
-      }).catch(err => {
-        alert("Erreur d'envoi email : " + err.text);
+      const destinataires = [
+        "florent.skirlo@sdis95.fr",
+        "jean-phillippe.cretin@sdis95.fr",
+        "lucie.palay@sdis95.fr",
+        "elina.maugeon@sdis95.fr"
+      ];
+
+      destinataires.forEach(email => {
+        emailjs.send("SOGTAV", "ENVOI_TABLEAU", {
+          to_email: email,
+          eap_name: eap,
+          table_html: tableHTML,
+          date_envoi: new Date().toLocaleDateString("fr-FR"),
+          type_resultat: "GSSI",
+          agents: JSON.stringify(agentsFusionnes)
+        }).then(() => {
+          console.log(`Email GSSI envoyé à ${email} !`);
+        }).catch(err => {
+          console.error("Erreur d'envoi email : " + err.text);
+        });
       });
 
-      fetch(`/save-${type.toLowerCase()}`, {
+      // Sauvegarde dans la BDD
+      fetch(`/save-gssi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eap: eap,
           date: new Date().toISOString().slice(0, 10),
-          agents: agents
+          agents: agentsFusionnes
         })
       })
       .then(res => res.json())
