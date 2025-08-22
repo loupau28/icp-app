@@ -6,7 +6,7 @@ import os
 import traceback
 
 app = Flask(__name__)
-app.secret_key = "un_secret_solide"  # ⚠️ change en clé forte
+app.secret_key = "un_secret_solide"  # ⚠️ change par une vraie clé
 CORS(app)
 
 # -------------------- UTILISATEURS --------------------
@@ -79,7 +79,9 @@ def login():
             error = "Mot de passe incorrect"
         else:
             session["username"] = username
-            return redirect(url_for("index"))
+            # après login → redirection vers la page demandée ou accueil
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("index"))
 
     return render_template("login.html", error=error)
 
@@ -88,12 +90,14 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# -------------------- ROUTES PRINCIPALES --------------------
+# -------------------- ROUTES PUBLIQUES --------------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
+# -------------------- ROUTES PROTÉGÉES --------------------
 @app.route("/consultation")
+@login_required
 def consultation_page():
     role = request.args.get("role")
     if role == "gssi":
@@ -102,15 +106,18 @@ def consultation_page():
         return render_template("consultage.html")
 
 @app.route("/renseignement")
+@login_required
 def consultation_icp():
     return render_template("Renseignement ICP.html")
 
 @app.route("/gssi")
+@login_required
 def consultation_gssi():
     return render_template("Renseignement GSSI.html")
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
+@login_required
 def save_icp():
     try:
         data = request.get_json()
@@ -158,6 +165,7 @@ def save_icp():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/get-icp")
+@login_required
 def get_icp():
     try:
         conn = get_db_connection()
@@ -182,6 +190,7 @@ def get_icp():
 
 # -------------------- GSSI --------------------
 @app.route("/save-gssi", methods=["POST"])
+@login_required
 def save_gssi():
     try:
         data = request.get_json()
@@ -226,6 +235,7 @@ def save_gssi():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/get-gssi")
+@login_required
 def get_gssi():
     try:
         conn = get_db_connection()
@@ -248,6 +258,7 @@ def get_gssi():
 
 # -------------------- UPDATE GRH --------------------
 @app.route("/update-grh/<table>", methods=["POST"])
+@login_required
 def update_grh(table):
     if table not in ["icp", "gssi"]:
         return jsonify({"error": "Table invalide"}), 400
