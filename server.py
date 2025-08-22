@@ -11,9 +11,9 @@ CORS(app)
 
 # -------------------- UTILISATEURS --------------------
 USERS = {
-    "BFOR-TAV": "BFOR-TAV95",
-    "SOG-TAV": "SOG-TAV95",
-    "EAP-TAV": "EAP-TAV95"
+    "BFOR-TAV": "BFOR-TAV95",   # Consultation
+    "SOG-TAV": "SOG-TAV95",     # GSSI
+    "EAP-TAV": "EAP-TAV95"      # ICP
 }
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -61,9 +61,21 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+def role_required(allowed_users):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if "username" not in session:
+                return redirect(url_for("login", next=request.url))
+            if session["username"] not in allowed_users:
+                return "Accès interdit", 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 # -------------------- LOGIN --------------------
 @app.route("/login", methods=["GET", "POST"])
@@ -79,7 +91,6 @@ def login():
             error = "Mot de passe incorrect"
         else:
             session["username"] = username
-            # après login → redirection vers la page demandée ou accueil
             next_page = request.args.get("next")
             return redirect(next_page or url_for("index"))
 
@@ -98,6 +109,7 @@ def index():
 # -------------------- ROUTES PROTÉGÉES --------------------
 @app.route("/consultation")
 @login_required
+@role_required(["BFOR-TAV"])
 def consultation_page():
     role = request.args.get("role")
     if role == "gssi":
@@ -107,17 +119,20 @@ def consultation_page():
 
 @app.route("/renseignement")
 @login_required
+@role_required(["EAP-TAV"])
 def consultation_icp():
     return render_template("Renseignement ICP.html")
 
 @app.route("/gssi")
 @login_required
+@role_required(["SOG-TAV"])
 def consultation_gssi():
     return render_template("Renseignement GSSI.html")
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
 @login_required
+@role_required(["EAP-TAV"])
 def save_icp():
     try:
         data = request.get_json()
@@ -166,6 +181,7 @@ def save_icp():
 
 @app.route("/get-icp")
 @login_required
+@role_required(["EAP-TAV"])
 def get_icp():
     try:
         conn = get_db_connection()
@@ -191,6 +207,7 @@ def get_icp():
 # -------------------- GSSI --------------------
 @app.route("/save-gssi", methods=["POST"])
 @login_required
+@role_required(["SOG-TAV"])
 def save_gssi():
     try:
         data = request.get_json()
@@ -236,6 +253,7 @@ def save_gssi():
 
 @app.route("/get-gssi")
 @login_required
+@role_required(["SOG-TAV"])
 def get_gssi():
     try:
         conn = get_db_connection()
@@ -259,6 +277,7 @@ def get_gssi():
 # -------------------- UPDATE GRH --------------------
 @app.route("/update-grh/<table>", methods=["POST"])
 @login_required
+@role_required(["BFOR-TAV"])
 def update_grh(table):
     if table not in ["icp", "gssi"]:
         return jsonify({"error": "Table invalide"}), 400
