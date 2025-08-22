@@ -98,16 +98,30 @@ def login():
     return render_template("login.html", error=error)
 
 # -------------------- ROUTES --------------------
+# -------------------- ROUTES --------------------
 @app.route("/")
 def index():
     # Retour à l'index → oubli du login
+    session.clear()
     return render_template("index.html")
 
 @app.route("/consultation")
 @login_required
 @role_required(["BFOR-TAV"])
 def consultation_page():
-    return render_template("consultage.html")
+    return render_template("Consultation.html")
+
+@app.route("/consultation/icp")
+@login_required
+@role_required(["BFOR-TAV"])
+def consultation_icp_page():
+    return render_template("Consultage.html")  # créer ce template
+
+@app.route("/consultation/gssi")
+@login_required
+@role_required(["BFOR-TAV"])
+def consultation_gssi_page():
+    return render_template("ConsultageGSSI.html")  # créer ce template
 
 @app.route("/renseignement")
 @login_required
