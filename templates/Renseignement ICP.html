@@ -90,56 +90,74 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     function genererTableau() {
-      var container = document.getElementById('tableau-container');
-      var nombre = parseInt(document.getElementById('nombre').value, 10);
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+  var container = document.getElementById('tableau-container');
+  var nombre = parseInt(document.getElementById('nombre').value, 10);
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-      container.innerHTML = '';
+  var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+  container.innerHTML = '';
 
-      var table = document.createElement('table');
+  var table = document.createElement('table');
 
-      // THEAD
-      var thead = document.createElement('thead');
-      var trHead = document.createElement('tr');
-      for (var c = 0; c < colonnes.length; c++) {
-        var th = document.createElement('th');
-        th.textContent = colonnes[c];
-        trHead.appendChild(th);
+  // THEAD
+  var thead = document.createElement('thead');
+  var trHead = document.createElement('tr');
+  colonnes.forEach(c => {
+    var th = document.createElement('th');
+    th.textContent = c;
+    trHead.appendChild(th);
+  });
+  thead.appendChild(trHead);
+  table.appendChild(thead);
+
+  // TBODY
+  var tbody = document.createElement('tbody');
+  for (var i = 0; i < nombre; i++) {
+    var tr = document.createElement('tr');
+    for (var j = 0; j < colonnes.length; j++) {
+      var td = document.createElement('td');
+
+      if (j === 0) { // Colonne Nom
+        td.contentEditable = "true";
+        td.spellcheck = false;
+
+        td.addEventListener('input', function() {
+          // Sauvegarde la position du curseur
+          const sel = window.getSelection();
+          const pos = sel.focusOffset;
+
+          // Force les majuscules
+          this.textContent = this.textContent.toUpperCase();
+
+          // Replace le curseur à sa position initiale
+          const range = document.createRange();
+          range.setStart(this.firstChild || this, pos);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+
+      } else { // Colonnes numériques
+        var input = document.createElement('input');
+        input.type = "number";
+        input.min = "0";
+        input.style.width = "80px";
+        input.style.textAlign = "center";
+        input.pattern = "[0-9]*";
+        td.appendChild(input);
       }
-      thead.appendChild(trHead);
-      table.appendChild(thead);
 
-      // TBODY
-      var tbody = document.createElement('tbody');
-      for (var i = 0; i < nombre; i++) {
-        var tr = document.createElement('tr');
-        for (var j = 0; j < colonnes.length; j++) {
-          var td = document.createElement('td');
-          if (j === 0) {
-            td.contentEditable = "true";
-            td.spellcheck = false;
-            td.addEventListener('input', (function(tdCopy) {
-              return function() { tdCopy.textContent = tdCopy.textContent.toUpperCase(); };
-            })(td));
-          } else {
-            var input = document.createElement('input');
-            input.type = "number";
-            input.min = "0";
-            input.style.width = "80px";
-            input.style.textAlign = "center";
-            input.pattern = "[0-9]*";
-            td.appendChild(input);
-          }
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      }
-      table.appendChild(tbody);
-      container.appendChild(table);
-
-      document.getElementById('send-button').style.display = 'flex';
+      tr.appendChild(td);
     }
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  document.getElementById('send-button').style.display = 'flex';
+}
+
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";

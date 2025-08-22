@@ -78,92 +78,93 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     async function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+  const container = document.getElementById('tableau-container');
+  const nombre = parseInt(document.getElementById('nombre').value);
+  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
-      html += "</tr></thead><tbody>";
+  let html = "<table><thead><tr>";
+  colonnes.forEach(col => html += `<th>${col}</th>`);
+  html += "</tr></thead><tbody>";
 
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) {
-            html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%; text-transform: uppercase;"></td>`;
-          } else {
-            html += `<td><input type="checkbox"/></td>`;
-          }
-        });
-        html += "</tr>";
+  for (let i = 0; i < nombre; i++) {
+    html += "<tr>";
+    colonnes.forEach((col, j) => {
+      if (j === 0) {
+        html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%;"></td>`;
+      } else {
+        html += `<td><input type="checkbox"/></td>`;
       }
-      html += "</tbody></table>";
+    });
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
 
-      container.innerHTML = html;
-      document.getElementById('send-button').style.display = 'block';
+  container.innerHTML = html;
+  document.getElementById('send-button').style.display = 'block';
 
-      const nomInputs = container.querySelectorAll('.nom-cell');
-      nomInputs.forEach(input => {
-        input.addEventListener('input', () => {
-          const start = input.selectionStart;
-          const end = input.selectionEnd;
-          input.value = input.value.toUpperCase();
-          input.setSelectionRange(start, end);
-        });
+  const nomInputs = container.querySelectorAll('.nom-cell');
+  nomInputs.forEach(input => {
+    input.addEventListener('input', () => {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      input.value = input.value.toUpperCase();  // Majuscules
+      input.setSelectionRange(start, end);      // Maintient la position du curseur
+    });
 
-        input.addEventListener('focus', () => {
-          setTimeout(() => {
-            const rect = input.getBoundingClientRect();
-            const offset = window.pageYOffset + rect.top - 100;
-            window.scrollTo({ top: offset, behavior: 'smooth' });
-          }, 200);
-        });
-      });
+    input.addEventListener('focus', () => {
+      setTimeout(() => {
+        const rect = input.getBoundingClientRect();
+        const offset = window.pageYOffset + rect.top - 100;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      }, 200);
+    });
+  });
 
-      // Préremplir anciens résultats
-      const eap = document.getElementById("SOG-select").value;
-      if (!eap) return;
-      try {
-        const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
-        if (res.ok) {
-          const anciens = await res.json();
-          const rows = container.querySelectorAll('tbody tr');
-          rows.forEach(row => {
-            const nomInput = row.querySelector('.nom-cell');
-            const nom = nomInput.value.trim().toUpperCase();
-            const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
-            if (ancien) {
-              row.cells[1].querySelector("input").checked = ancien.psc === 1;
-              row.cells[2].querySelector("input").checked = ancien.crochet === 1;
-              row.cells[3].querySelector("input").checked = ancien.excavation === 1;
-            }
-          });
+  // Préremplir anciens résultats
+  const eap = document.getElementById("SOG-select").value;
+  if (!eap) return;
+  try {
+    const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
+    if (res.ok) {
+      const anciens = await res.json();
+      const rows = container.querySelectorAll('tbody tr');
+      rows.forEach(row => {
+        const nomInput = row.querySelector('.nom-cell');
+        const nom = nomInput.value.trim().toUpperCase();
+        const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
+        if (ancien) {
+          row.cells[1].querySelector("input").checked = ancien.psc === 1;
+          row.cells[2].querySelector("input").checked = ancien.crochet === 1;
+          row.cells[3].querySelector("input").checked = ancien.excavation === 1;
         }
-      } catch (err) {
-        console.error("Erreur récupération anciens résultats :", err);
-      }
-    }
-
-    document.getElementById("generer-btn").addEventListener("click", genererTableau);
-
-    function ajouterStylesTable(table) {
-      table.style.borderCollapse = "collapse";
-      table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
       });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
-      return table.outerHTML;
     }
+  } catch (err) {
+    console.error("Erreur récupération anciens résultats :", err);
+  }
+}
+
+document.getElementById("generer-btn").addEventListener("click", genererTableau);
+
+function ajouterStylesTable(table) {
+  table.style.borderCollapse = "collapse";
+  table.style.width = "100%";
+  table.querySelectorAll("th").forEach(th => {
+    th.style.border = "2px solid black";
+    th.style.padding = "10px";
+    th.style.textAlign = "center";
+    th.style.backgroundColor = "#f2f2f2";
+  });
+  table.querySelectorAll("td").forEach(td => {
+    td.style.border = "2px solid black";
+    td.style.padding = "10px";
+    td.style.textAlign = "center";
+    td.style.backgroundColor = "#f2f2f2";
+  });
+  return table.outerHTML;
+}
+
 
     async function envoyerGSSIetSauvegarder() {
       const eap = document.getElementById("SOG-select").value;
