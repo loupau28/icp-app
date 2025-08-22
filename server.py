@@ -1,20 +1,22 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify
+from flask import Flask, request, render_template, redirect, url_for, jsonify, session
 from flask_cors import CORS
+from functools import wraps
 import psycopg2
 import os
 import traceback
 
 app = Flask(__name__)
+app.secret_key = "un_secret_solide"  # ⚠️ change en clé forte
 CORS(app)
 
 # -------------------- UTILISATEURS --------------------
 USERS = {
-    "BFOR-TAV": {"password": "BFOR-TAV95", "roles": ["consultage", "gssi"]},
-    "SOG-TAV": {"password": "SOG-TAV95", "roles": ["gssi"]},
-    "EAP-TAV": {"password": "EAP-TAV95", "roles": ["renseignement"]}
+    "BFOR-TAV": "BFOR-TAV95",
+    "SOG-TAV": "SOG-TAV95",
+    "EAP-TAV": "EAP-TAV95"
 }
 
-DATABASE_URL = os.environ.get("DATABASE_URL")  # exemple : postgres://user:pass@host/db
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # -------------------- BDD --------------------
 def get_db_connection():
@@ -23,7 +25,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # Table ICP
     c.execute("""
         CREATE TABLE IF NOT EXISTS icp (
             id SERIAL PRIMARY KEY,
@@ -39,7 +40,6 @@ def init_db():
             grh BOOLEAN DEFAULT FALSE
         )
     """)
-    # Table GSSI
     c.execute("""
         CREATE TABLE IF NOT EXISTS gssi (
             id SERIAL PRIMARY KEY,
@@ -56,6 +56,15 @@ def init_db():
     c.close()
     conn.close()
 
+# -------------------- LOGIN REQUIRED --------------------
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "username" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # -------------------- LOGIN --------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -63,35 +72,21 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        user = USERS.get(username)
 
-        if not user:
+        if username not in USERS:
             error = "Identifiant invalide"
-        elif password != user["password"]:
+        elif USERS[username] != password:
             error = "Mot de passe incorrect"
         else:
-            roles = user["roles"]
-            if len(roles) == 1:
-                return rediriger_par_role(roles[0])
-            else:
-                return render_template("choix_role.html", roles=roles, username=username)
+            session["username"] = username
+            return redirect(url_for("index"))
+
     return render_template("login.html", error=error)
 
-# -------------------- REDIRECTION SELON RÔLE --------------------
-def rediriger_par_role(role):
-    if role == "renseignement":
-        return render_template("Renseignement_ICP.html")
-    elif role == "consultage":
-        return redirect(url_for("consultation_page", role="icp"))
-    elif role == "gssi":
-        return redirect(url_for("consultation_page", role="gssi"))
-    else:
-        return "Rôle inconnu ou accès refusé", 403
-
-@app.route("/rediriger_role", methods=["POST"])
-def rediriger_role():
-    role = request.form.get("role")
-    return rediriger_par_role(role)
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 # -------------------- ROUTES PRINCIPALES --------------------
 @app.route("/")
