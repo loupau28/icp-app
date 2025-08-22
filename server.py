@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify, session
+from flask import Flask, request, render_template, redirect, url_for, jsonify
 from flask_cors import CORS
 from functools import wraps
 import psycopg2
@@ -6,7 +6,7 @@ import os
 import traceback
 
 app = Flask(__name__)
-app.secret_key = "un_secret_solide"  # ⚠️ change par une vraie clé
+app.secret_key = "un_secret_solide"
 CORS(app)
 
 # -------------------- UTILISATEURS --------------------
@@ -56,22 +56,20 @@ def init_db():
     c.close()
     conn.close()
 
-# -------------------- LOGIN REQUIRED --------------------
+# -------------------- DECORATEURS --------------------
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "username" not in session:
-            return redirect(url_for("login", next=request.url))
-        return f(*args, **kwargs)
+        # Toujours forcer le passage par la page de login
+        return redirect(url_for("login", next=request.url))
     return decorated_function
 
 def role_required(allowed_users):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if "username" not in session:
-                return redirect(url_for("login", next=request.url))
-            if session["username"] not in allowed_users:
+            username = request.args.get("user")
+            if not username or username not in allowed_users:
                 return "Accès interdit", 403
             return f(*args, **kwargs)
         return decorated_function
@@ -90,16 +88,11 @@ def login():
         elif USERS[username] != password:
             error = "Mot de passe incorrect"
         else:
-            session["username"] = username
-            next_page = request.args.get("next")
-            return redirect(next_page or url_for("index"))
+            next_page = request.args.get("next") or url_for("index")
+            sep = "&" if "?" in next_page else "?"
+            return redirect(f"{next_page}{sep}user={username}")
 
     return render_template("login.html", error=error)
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
 
 # -------------------- ROUTES PUBLIQUES --------------------
 @app.route("/")

@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-     background: url('/static/FOND.png') no-repeat center center fixed;
+      background: url('/static/FOND.png') no-repeat center center fixed;
       background-size: cover;
       padding: 40px;
       color: red;
@@ -50,10 +50,10 @@
   <h2>Gestion des ICP</h2>
 
   <div id="menu">
-<button onclick="window.location.href='/renseignement'">RENSEIGNEMENT ICP</button>
-<button onclick="window.location.href='/consultation'">CONSULTATION DES ICP ET DES GSSI</button>
-<button onclick="window.location.href='/gssi'">RENSEIGNEMENT DES GSSI</button>
-
+    <!-- chaque bouton redirige vers /login avec next vers la page ciblée -->
+    <button onclick="window.location.href='/login?next=/renseignement'">RENSEIGNEMENT ICP</button>
+    <button onclick="window.location.href='/login?next=/consultation'">CONSULTATION DES ICP ET DES GSSI</button>
+    <button onclick="window.location.href='/login?next=/gssi'">RENSEIGNEMENT DES GSSI</button>
   </div>
 
 </body>
