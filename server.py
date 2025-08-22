@@ -108,11 +108,11 @@ def consultation_page():
 
 @app.route("/renseignement")
 def consultation_icp():
-    return render_template("Renseignement_ICP.html")
+    return render_template("Renseignement ICP.html")
 
 @app.route("/gssi")
 def consultation_gssi():
-    return render_template("Renseignement_GSSI.html")
+    return render_template("Renseignement GSSI.html")
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
