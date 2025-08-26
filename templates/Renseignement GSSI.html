@@ -183,13 +183,12 @@
           excavation: cellsOriginal[3].querySelector("input")?.checked ? 1 : 0
         };
 
-        // Remplacer inputs par valeurs pour l'email
+        // Remplacer inputs par Oui/Non pour l'email
         cellsClone.forEach((cell, idx) => {
           const input = cellsOriginal[idx].querySelector("input");
-          if (input) {
-            if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
-            else cell.textContent = input.value.trim();
-          }
+          if (!input) return;
+          if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
+          else cell.textContent = input.value.trim();
         });
 
         agents.push(agent);
@@ -200,6 +199,7 @@
       const emailHTML = `
         <html>
           <body>
+            <p><strong>SOG :</strong> ${sog}</p>
             ${tableHTML}
           </body>
         </html>
