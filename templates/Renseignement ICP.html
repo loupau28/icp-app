@@ -79,7 +79,7 @@
 
   <div id="tableau-container"></div>
   <div id="send-button" style="display: flex;">
-    <button onclick="envoyerEmailEtSauvegarder()">ENVOYER LES ICP</button>
+    <button onclick="envoyerICP()">ENVOYER LES ICP</button>
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
@@ -151,15 +151,13 @@
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-      var ths = table.querySelectorAll("th");
-      ths.forEach(th => {
+      table.querySelectorAll("th").forEach(th => {
         th.style.border = "2px solid black";
         th.style.padding = "10px";
         th.style.textAlign = "center";
         th.style.backgroundColor = "#f2f2f2";
       });
-      var tds = table.querySelectorAll("td");
-      tds.forEach(td => {
+      table.querySelectorAll("td").forEach(td => {
         td.style.border = "2px solid black";
         td.style.padding = "10px";
         td.style.textAlign = "center";
@@ -168,24 +166,26 @@
       return table.outerHTML;
     }
 
-    function envoyerEmailEtSauvegarder(type) {
-      type = type || "ICP";
+    function envoyerICP() {
       var eap = document.getElementById("EAP-select").value;
       var table = document.querySelector("table");
       if (!table) return;
 
-      var rows = table.querySelectorAll("tbody tr");
+      var tableClone = table.cloneNode(true);
       var agents = [];
 
-      for (var i = 0; i < rows.length; i++) {
-        var cells = rows[i].querySelectorAll("td");
+      tableClone.querySelectorAll("tbody tr").forEach(row => {
+        var cells = row.querySelectorAll("td");
         var nom = cells[0].textContent.trim().toUpperCase();
         var stats = [];
+
         for (var j = 1; j < cells.length; j++) {
           var input = cells[j].querySelector("input");
-          stats.push(parseInt(input ? input.value : 0) || 0);
-          cells[j].textContent = stats[j-1]; // remplacer input par valeur
+          var value = input ? parseInt(input.value) || 0 : parseInt(cells[j].textContent) || 0;
+          cells[j].textContent = value; // Remplace l'input par la valeur
+          stats.push(value);
         }
+
         agents.push({
           nom: nom,
           pompes: stats[0],
@@ -195,16 +195,16 @@
           luc_leger: stats[4],
           souplesse: stats[5]
         });
-      }
+      });
 
-      var tableClone = table.cloneNode(true);
       var tableHTML = ajouterStylesTable(tableClone);
+
       var emailHTML = `
         <html>
           <body>
             <p><strong>EAP :</strong> ${eap}</p>
             <p><strong>DATE :</strong> ${new Date().toLocaleDateString("fr-FR")}</p>
-            <p><strong>Résultat ${type} :</strong></p>
+            <p><strong>Résultat ICP :</strong></p>
             ${tableHTML}
           </body>
         </html>
@@ -217,22 +217,20 @@
           eap_name: eap,
           table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
-          type_resultat: type,
+          type_resultat: "ICP",
           agents: JSON.stringify(agents)
         }).then(() => console.log(`Email ICP envoyé à ${email}`))
           .catch(err => console.error("Erreur d'envoi email :", err.text));
       });
 
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "/save-" + type.toLowerCase(), true);
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) console.log("Sauvegarde OK :", xhr.responseText);
-          else console.error("Erreur de sauvegarde :", xhr.responseText);
-        }
-      };
-      xhr.send(JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0, 10), agents: agents }));
+      fetch("/save-icp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
+      })
+      .then(res => res.json())
+      .then(data => console.log("Sauvegarde OK :", data))
+      .catch(err => console.error("Erreur de sauvegarde :", err));
     }
   </script>
 </body>
