@@ -76,55 +76,43 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     async function genererTableau() {
-  const container = document.getElementById('tableau-container');
-  const nombre = parseInt(document.getElementById('nombre').value);
-  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value);
+      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-  let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
-  colonnes.forEach(col => {
-    html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
-  });
-  html += "</tr></thead><tbody>";
-  
-  // Pré-remplir le tableau avec des lignes vides
-  for (let i = 0; i < nombre; i++) {
-    html += "<tr>";
-    colonnes.forEach((col, j) => {
-      if (j === 0) html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width:100%;"></td>`;
-      else html += `<td><input type="checkbox"/></td>`;
-    });
-    html += "</tr>";
-  }
-  html += "</tbody></table>";
+      const sog = document.getElementById("SOG-select").value;
+      if (!sog) return;
 
-  container.innerHTML = html;
-  document.getElementById('send-button').style.display = 'block';
+      let anciens = [];
+      try {
+        const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
+        if (res.ok) anciens = await res.json();
+      } catch (err) {
+        console.error("Erreur récupération anciens résultats :", err);
+      }
 
-  const sog = document.getElementById("SOG-select").value;
-  if (!sog) return;
-
-  try {
-    const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
-    if (res.ok) {
-      const anciens = await res.json();
-      const tbody = container.querySelector("tbody");
-
-      // Fusionner les anciens résultats sans écraser les autres lignes
-      anciens.forEach((agent, i) => {
-        if (i >= tbody.rows.length) return; // éviter débordement
-        const cells = tbody.rows[i].cells;
-        cells[0].querySelector("input").value = agent.nom || "";
-        cells[1].querySelector("input").checked = !!agent.psc;
-        cells[2].querySelector("input").checked = !!agent.crochet;
-        cells[3].querySelector("input").checked = !!agent.excavation;
+      let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
+      colonnes.forEach(col => {
+        html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
       });
-    }
-  } catch (err) {
-    console.error("Erreur récupération anciens résultats :", err);
-  }
-}
+      html += "</tr></thead><tbody>";
 
+      // Fusion des anciens et ajout de lignes vides si nécessaire
+      for (let i = 0; i < Math.max(nombre, anciens.length); i++) {
+        const agent = anciens[i] || {};
+        html += "<tr>";
+        html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width:100%;" value="${agent.nom || ''}"></td>`;
+        html += `<td><input type="checkbox" ${agent.psc ? 'checked' : ''}></td>`;
+        html += `<td><input type="checkbox" ${agent.crochet ? 'checked' : ''}></td>`;
+        html += `<td><input type="checkbox" ${agent.excavation ? 'checked' : ''}></td>`;
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      container.innerHTML = html;
+      document.getElementById('send-button').style.display = 'block';
+    }
 
     document.getElementById("generer-btn").addEventListener("click", genererTableau);
 
@@ -146,77 +134,76 @@
       return table.outerHTML;
     }
 
-   async function envoyerGSSIetSauvegarder() {
-  const sog = document.getElementById("SOG-select").value;
-  if (!sog) return;
+    async function envoyerGSSIetSauvegarder() {
+      const sog = document.getElementById("SOG-select").value;
+      if (!sog) return;
 
-  const table = document.querySelector("table");
-  if (!table) return;
+      const table = document.querySelector("table");
+      if (!table) return;
 
-  const rows = table.querySelectorAll("tbody tr");
-  const agents = [];
+      const rows = table.querySelectorAll("tbody tr");
+      const agents = [];
 
-  const tableClone = table.cloneNode(true);
-  tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
-    const cellsOriginal = rows[i].querySelectorAll("td");
-    const cellsClone = row.querySelectorAll("td");
+      const tableClone = table.cloneNode(true);
+      tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
+        const cellsOriginal = rows[i].querySelectorAll("td");
+        const cellsClone = row.querySelectorAll("td");
 
-    // Lire correctement les valeurs actuelles
-    const nom = cellsOriginal[0].querySelector("input")?.value.trim() || "";
-    const psc = cellsOriginal[1].querySelector("input")?.checked ? 1 : 0;
-    const crochet = cellsOriginal[2].querySelector("input")?.checked ? 1 : 0;
-    const excavation = cellsOriginal[3].querySelector("input")?.checked ? 1 : 0;
+        // Lire correctement les valeurs actuelles
+        const nom = cellsOriginal[0].querySelector("input")?.value.trim() || "";
+        const psc = cellsOriginal[1].querySelector("input")?.checked ? 1 : 0;
+        const crochet = cellsOriginal[2].querySelector("input")?.checked ? 1 : 0;
+        const excavation = cellsOriginal[3].querySelector("input")?.checked ? 1 : 0;
 
-    agents.push({ nom, psc, crochet, excavation });
+        agents.push({ nom, psc, crochet, excavation });
 
-    // Remplacer inputs par Oui/Non dans le clone pour l'email
-    cellsClone.forEach((cell, idx) => {
-      const input = cellsOriginal[idx].querySelector("input");
-      if (!input) return;
-      if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
-      else cell.textContent = input.value.trim();
-    });
-  });
+        // Remplacer inputs par Oui/Non dans le clone pour l'email
+        cellsClone.forEach((cell, idx) => {
+          const input = cellsOriginal[idx].querySelector("input");
+          if (!input) return;
+          if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
+          else cell.textContent = input.value.trim();
+        });
+      });
 
-  const tableHTML = ajouterStylesTable(tableClone);
+      const tableHTML = ajouterStylesTable(tableClone);
 
-  const emailHTML = `
-    <html>
-      <body>
-        <p><strong>SOG :</strong> ${sog}</p>
-        ${tableHTML}
-      </body>
-    </html>
-  `;
+      const emailHTML = `
+        <html>
+          <body>
+            <p><strong>SOG :</strong> ${sog}</p>
+            ${tableHTML}
+          </body>
+        </html>
+      `;
 
-  const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
+      const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
 
-  destinataires.forEach(email => {
-    emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-      to_email: email,
-      sog_name: sog,
-      table_html: emailHTML,
-      date_envoi: new Date().toLocaleDateString("fr-FR"),
-      type_resultat: "GSSI",
-      agents: JSON.stringify(agents)
-    }).then(() => console.log(`Email GSSI envoyé à ${email} !`))
-      .catch(err => console.error("Erreur d'envoi email :", err.text));
-  });
+      destinataires.forEach(email => {
+        emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
+          to_email: email,
+          sog_name: sog,
+          table_html: emailHTML,
+          date_envoi: new Date().toLocaleDateString("fr-FR"),
+          type_resultat: "GSSI",
+          agents: JSON.stringify(agents)
+        }).then(() => console.log(`Email GSSI envoyé à ${email} !`))
+          .catch(err => console.error("Erreur d'envoi email :", err.text));
+      });
 
-  fetch(`/save-gssi`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sog: sog,
-      date: new Date().toISOString().slice(0, 10),
-      agents: agents
-    })
-  }).catch(err => console.error("Erreur de sauvegarde :", err));
+      fetch(`/save-gssi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sog: sog,
+          date: new Date().toISOString().slice(0, 10),
+          agents: agents
+        })
+      }).catch(err => console.error("Erreur de sauvegarde :", err));
 
-  // Retour automatique à l'index
-  window.location.href = "/";
-}
-
+      // Retour automatique à l'index
+      window.location.href = "/";
+    }
   </script>
 </body>
 </html>
