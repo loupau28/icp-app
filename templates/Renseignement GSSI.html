@@ -134,80 +134,86 @@
       return table.outerHTML;
     }
 
-    async function envoyerGSSIetSauvegarder() {
-      const sog = document.getElementById("SOG-select").value;
-      if (!sog) return;
+ async function envoyerGSSIetSauvegarder() {
+  const sog = document.getElementById("SOG-select").value;
+  if (!sog) return;
 
-      const table = document.querySelector("table");
-      if (!table) return;
+  const table = document.querySelector("table");
+  if (!table) return;
 
-      const rows = table.querySelectorAll("tbody tr");
-      const agents = [];
+  const rows = table.querySelectorAll("tbody tr");
+  const agents = [];
 
-      const tableClone = table.cloneNode(true);
-      tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
-        const cellsOriginal = rows[i].querySelectorAll("td");
-        const cellsClone = row.querySelectorAll("td");
+  // Cloner le tableau pour l'email et remplacer inputs par valeurs
+  const tableClone = table.cloneNode(true);
+  tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
+    const cellsOriginal = rows[i].querySelectorAll("td");
+    const cellsClone = row.querySelectorAll("td");
 
-        // Lire correctement les valeurs actuelles
-        const nom = cellsOriginal[0].querySelector("input")?.value.trim() || "";
-        const psc = cellsOriginal[1].querySelector("input")?.checked ? 1 : 0;
-        const crochet = cellsOriginal[2].querySelector("input")?.checked ? 1 : 0;
-        const excavation = cellsOriginal[3].querySelector("input")?.checked ? 1 : 0;
+    cellsClone.forEach((cell, idx) => {
+      const input = cellsOriginal[idx].querySelector("input");
+      if (input) {
+        if (input.type === "checkbox") {
+          const checked = input.checked;
+          cell.textContent = checked ? "Oui" : "Non";
+        } else {
+          cell.textContent = input.value.trim();
+        }
+      }
+    });
 
-        agents.push({ nom, psc, crochet, excavation });
+    agents.push({
+      nom: cellsOriginal[0].querySelector("input").value.trim(),
+      psc: cellsOriginal[1].querySelector("input").checked ? 1 : 0,
+      crochet: cellsOriginal[2].querySelector("input").checked ? 1 : 0,
+      excavation: cellsOriginal[3].querySelector("input").checked ? 1 : 0
+    });
+  });
 
-        // Remplacer inputs par Oui/Non dans le clone pour l'email
-        cellsClone.forEach((cell, idx) => {
-          const input = cellsOriginal[idx].querySelector("input");
-          if (!input) return;
-          if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
-          else cell.textContent = input.value.trim();
-        });
-      });
+  const tableHTML = ajouterStylesTable(tableClone);
+  const today = new Date().toLocaleDateString("fr-FR");
 
-      const tableHTML = ajouterStylesTable(tableClone);
+  const emailHTML = `
+    <html>
+      <body>
+        <p><strong>Résultat GSSI :</strong> Garde du ${today}</p>
+        <p><strong>SOG :</strong> ${sog}</p>
+        ${tableHTML}
+      </body>
+    </html>
+  `;
 
-      const today = new Date().toLocaleDateString("fr-FR");
-	  
-		const emailHTML = `
-		<html>
-		<body>
-			<p><strong>Résultat GSSI :</strong> Garde du ${today}</p>
-			<p><strong>SOG :</strong> ${sog}</p>
-			${tableHTML}
-		</body>
-		</html>
-		`;
+  // Envoi EmailJS
+  const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
+  for (const email of destinataires) {
+    await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
+      to_email: email,
+      sog_name: sog,
+      table_html: emailHTML,
+      date_envoi: today,
+      type_resultat: "GSSI",
+      agents: JSON.stringify(agents)
+    });
+  }
 
+  // Sauvegarde serveur
+  fetch(`/save-gssi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sog: sog,
+      date: today, // envoyer la date au format dd/mm/yyyy ou yyyy-mm-dd
+      agents: agents
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Sauvegarde OK :", data);
+    window.location.href = "/"; // retour automatique
+  })
+  .catch(err => console.error("Erreur de sauvegarde :", err));
+}
 
-      const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
-
-      destinataires.forEach(email => {
-        emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-          to_email: email,
-          sog_name: sog,
-          table_html: emailHTML,
-          date_envoi: new Date().toLocaleDateString("fr-FR"),
-          type_resultat: "GSSI",
-          agents: JSON.stringify(agents)
-        }).then(() => console.log(`Email GSSI envoyé à ${email} !`))
-          .catch(err => console.error("Erreur d'envoi email :", err.text));
-      });
-
-      fetch(`/save-gssi`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sog: sog,
-          date: new Date().toISOString().slice(0, 10),
-          agents: agents
-        })
-      }).catch(err => console.error("Erreur de sauvegarde :", err));
-
-      // Retour automatique à l'index
-      window.location.href = "/";
-    }
   </script>
 </body>
 </html>
