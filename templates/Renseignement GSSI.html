@@ -76,70 +76,55 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     async function genererTableau() {
-      const container = document.getElementById('tableau-container');
-      const nombre = parseInt(document.getElementById('nombre').value);
-      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+  const container = document.getElementById('tableau-container');
+  const nombre = parseInt(document.getElementById('nombre').value);
+  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
-      colonnes.forEach(col => {
-        html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
+  let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
+  colonnes.forEach(col => {
+    html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
+  });
+  html += "</tr></thead><tbody>";
+  
+  // Pré-remplir le tableau avec des lignes vides
+  for (let i = 0; i < nombre; i++) {
+    html += "<tr>";
+    colonnes.forEach((col, j) => {
+      if (j === 0) html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width:100%;"></td>`;
+      else html += `<td><input type="checkbox"/></td>`;
+    });
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+
+  container.innerHTML = html;
+  document.getElementById('send-button').style.display = 'block';
+
+  const sog = document.getElementById("SOG-select").value;
+  if (!sog) return;
+
+  try {
+    const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
+    if (res.ok) {
+      const anciens = await res.json();
+      const tbody = container.querySelector("tbody");
+
+      // Fusionner les anciens résultats sans écraser les autres lignes
+      anciens.forEach((agent, i) => {
+        if (i >= tbody.rows.length) return; // éviter débordement
+        const cells = tbody.rows[i].cells;
+        cells[0].querySelector("input").value = agent.nom || "";
+        cells[1].querySelector("input").checked = !!agent.psc;
+        cells[2].querySelector("input").checked = !!agent.crochet;
+        cells[3].querySelector("input").checked = !!agent.excavation;
       });
-      html += "</tr></thead><tbody>";
-
-      for (let i = 0; i < nombre; i++) {
-        html += "<tr>";
-        colonnes.forEach((col, j) => {
-          if (j === 0) {
-            html += `<td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                        <input type="text" class="nom-cell" spellcheck="false" style="width:100%;">
-                      </td>`;
-          } else {
-            html += `<td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                        <input type="checkbox"/>
-                      </td>`;
-          }
-        });
-        html += "</tr>";
-      }
-      html += "</tbody></table>";
-
-      container.innerHTML = html;
-      document.getElementById('send-button').style.display = 'block';
-
-      const sog = document.getElementById("SOG-select").value;
-      if (!sog) return;
-
-      try {
-        const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
-        if (res.ok) {
-          const anciens = await res.json();
-          const tbody = container.querySelector("tbody");
-          tbody.innerHTML = "";
-
-          anciens.forEach(agent => {
-            tbody.innerHTML += `
-              <tr>
-                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                  <input type="text" class="nom-cell" value="${agent.nom}" style="width:100%">
-                </td>
-                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                  <input type="checkbox" ${agent.psc ? "checked" : ""}>
-                </td>
-                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                  <input type="checkbox" ${agent.crochet ? "checked" : ""}>
-                </td>
-                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
-                  <input type="checkbox" ${agent.excavation ? "checked" : ""}>
-                </td>
-              </tr>
-            `;
-          });
-        }
-      } catch (err) {
-        console.error("Erreur récupération anciens résultats :", err);
-      }
     }
+  } catch (err) {
+    console.error("Erreur récupération anciens résultats :", err);
+  }
+}
+
 
     document.getElementById("generer-btn").addEventListener("click", genererTableau);
 
