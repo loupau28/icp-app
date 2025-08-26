@@ -22,8 +22,6 @@
       border: 2px solid black;
       padding: 10px;
       text-align: center;
-    }
-    td {
       background-color: #f2f2f2;
     }
     input, button, select {
@@ -83,18 +81,23 @@
       const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      let html = "<table><thead><tr>";
-      colonnes.forEach(col => html += `<th>${col}</th>`);
+      let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
+      colonnes.forEach(col => {
+        html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
+      });
       html += "</tr></thead><tbody>";
 
-      // génération "vide" par défaut
       for (let i = 0; i < nombre; i++) {
         html += "<tr>";
         colonnes.forEach((col, j) => {
           if (j === 0) {
-            html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%;"></td>`;
+            html += `<td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                        <input type="text" class="nom-cell" spellcheck="false" style="width:100%;">
+                      </td>`;
           } else {
-            html += `<td><input type="checkbox"/></td>`;
+            html += `<td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                        <input type="checkbox"/>
+                      </td>`;
           }
         });
         html += "</tr>";
@@ -107,21 +110,28 @@
       const sog = document.getElementById("SOG-select").value;
       if (!sog) return;
 
-      // 🔹 Lecture des anciens résultats depuis la BDD
       try {
         const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
         if (res.ok) {
           const anciens = await res.json();
           const tbody = container.querySelector("tbody");
-          tbody.innerHTML = ""; // on écrase le tableau vide
+          tbody.innerHTML = "";
 
           anciens.forEach(agent => {
             tbody.innerHTML += `
               <tr>
-                <td><input type="text" class="nom-cell" value="${agent.nom}" style="width:100%"></td>
-                <td><input type="checkbox" ${agent.psc ? "checked" : ""}></td>
-                <td><input type="checkbox" ${agent.crochet ? "checked" : ""}></td>
-                <td><input type="checkbox" ${agent.excavation ? "checked" : ""}></td>
+                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                  <input type="text" class="nom-cell" value="${agent.nom}" style="width:100%">
+                </td>
+                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                  <input type="checkbox" ${agent.psc ? "checked" : ""}>
+                </td>
+                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                  <input type="checkbox" ${agent.crochet ? "checked" : ""}>
+                </td>
+                <td style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>
+                  <input type="checkbox" ${agent.excavation ? "checked" : ""}>
+                </td>
               </tr>
             `;
           });
@@ -157,13 +167,19 @@
       const rows = document.querySelectorAll("tbody tr");
       const agents = [];
 
+      const type_resultat = "GSSI"; // à adapter si besoin
+      const eap = type_resultat === "GSSI" ? "SOG" : "EAP";
+
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
         const nom = cells[0].querySelector('input').value.trim();
         const psc = cells[1].querySelector("input")?.checked ? 1 : 0;
         const crochet = cells[2].querySelector("input")?.checked ? 1 : 0;
         const excavation = cells[3].querySelector("input")?.checked ? 1 : 0;
+
         agents.push({ nom, psc, crochet, excavation });
+
+        // remplacer les inputs par texte pour email
         cells[1].innerText = psc ? "Oui" : "Non";
         cells[2].innerText = crochet ? "Oui" : "Non";
         cells[3].innerText = excavation ? "Oui" : "Non";
@@ -171,6 +187,16 @@
 
       const tableClone = table.cloneNode(true);
       const tableHTML = ajouterStylesTable(tableClone);
+      const emailHTML = `
+        <html>
+          <body>
+            <p><strong>${eap} :</strong> ${sog}</p>
+            <p><strong>DATE :</strong> ${new Date().toLocaleDateString("fr-FR")}</p>
+            <p><strong>Résultat ${type_resultat} :</strong></p>
+            ${tableHTML}
+          </body>
+        </html>
+      `;
 
       const destinataires = [
         "florent.skirlo@sdis95.fr",
@@ -181,9 +207,10 @@
         emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
           to_email: email,
           sog_name: sog,
-          table_html: tableHTML,
+          table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
-          type_resultat: "GSSI",
+          type_resultat: type_resultat,
+          eap: eap,
           agents: JSON.stringify(agents)
         }).then(() => {
           console.log(`Email GSSI envoyé à ${email} !`);

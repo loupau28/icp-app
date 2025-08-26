@@ -23,8 +23,6 @@
       border: 2px solid black;
       padding: 10px;
       text-align: center;
-    }
-    td {
       background-color: #f2f2f2;
     }
     td[contenteditable="true"] {
@@ -90,92 +88,83 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     function genererTableau() {
-  var container = document.getElementById('tableau-container');
-  var nombre = parseInt(document.getElementById('nombre').value, 10);
-  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+      var container = document.getElementById('tableau-container');
+      var nombre = parseInt(document.getElementById('nombre').value, 10);
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-  var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
-  container.innerHTML = '';
+      var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      container.innerHTML = '';
 
-  var table = document.createElement('table');
+      var table = document.createElement('table');
 
-  // THEAD
-  var thead = document.createElement('thead');
-  var trHead = document.createElement('tr');
-  colonnes.forEach(c => {
-    var th = document.createElement('th');
-    th.textContent = c;
-    trHead.appendChild(th);
-  });
-  thead.appendChild(trHead);
-  table.appendChild(thead);
+      // THEAD
+      var thead = document.createElement('thead');
+      var trHead = document.createElement('tr');
+      colonnes.forEach(c => {
+        var th = document.createElement('th');
+        th.textContent = c;
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+      table.appendChild(thead);
 
-  // TBODY
-  var tbody = document.createElement('tbody');
-  for (var i = 0; i < nombre; i++) {
-    var tr = document.createElement('tr');
-    for (var j = 0; j < colonnes.length; j++) {
-      var td = document.createElement('td');
+      // TBODY
+      var tbody = document.createElement('tbody');
+      for (var i = 0; i < nombre; i++) {
+        var tr = document.createElement('tr');
+        for (var j = 0; j < colonnes.length; j++) {
+          var td = document.createElement('td');
 
-      if (j === 0) { // Colonne Nom
-        td.contentEditable = "true";
-        td.spellcheck = false;
+          if (j === 0) {
+            td.contentEditable = "true";
+            td.spellcheck = false;
+            td.addEventListener('input', function() {
+              const sel = window.getSelection();
+              const pos = sel.focusOffset;
+              this.textContent = this.textContent.toUpperCase();
+              const range = document.createRange();
+              range.setStart(this.firstChild || this, pos);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            });
+          } else {
+            var input = document.createElement('input');
+            input.type = "number";
+            input.min = "0";
+            input.style.width = "80px";
+            input.style.textAlign = "center";
+            input.pattern = "[0-9]*";
+            td.appendChild(input);
+          }
 
-        td.addEventListener('input', function() {
-          // Sauvegarde la position du curseur
-          const sel = window.getSelection();
-          const pos = sel.focusOffset;
-
-          // Force les majuscules
-          this.textContent = this.textContent.toUpperCase();
-
-          // Replace le curseur à sa position initiale
-          const range = document.createRange();
-          range.setStart(this.firstChild || this, pos);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        });
-
-      } else { // Colonnes numériques
-        var input = document.createElement('input');
-        input.type = "number";
-        input.min = "0";
-        input.style.width = "80px";
-        input.style.textAlign = "center";
-        input.pattern = "[0-9]*";
-        td.appendChild(input);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
       }
 
-      tr.appendChild(td);
+      table.appendChild(tbody);
+      container.appendChild(table);
+      document.getElementById('send-button').style.display = 'flex';
     }
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  container.appendChild(table);
-
-  document.getElementById('send-button').style.display = 'flex';
-}
-
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
       var ths = table.querySelectorAll("th");
-      for (var i = 0; i < ths.length; i++) {
-        ths[i].style.border = "2px solid black";
-        ths[i].style.padding = "10px";
-        ths[i].style.textAlign = "center";
-        ths[i].style.backgroundColor = "#f2f2f2";
-      }
+      ths.forEach(th => {
+        th.style.border = "2px solid black";
+        th.style.padding = "10px";
+        th.style.textAlign = "center";
+        th.style.backgroundColor = "#f2f2f2";
+      });
       var tds = table.querySelectorAll("td");
-      for (var i = 0; i < tds.length; i++) {
-        tds[i].style.border = "2px solid black";
-        tds[i].style.padding = "10px";
-        tds[i].style.textAlign = "center";
-        tds[i].style.backgroundColor = "#f2f2f2";
-      }
+      tds.forEach(td => {
+        td.style.border = "2px solid black";
+        td.style.padding = "10px";
+        td.style.textAlign = "center";
+        td.style.backgroundColor = "#f2f2f2";
+      });
       return table.outerHTML;
     }
 
@@ -195,8 +184,7 @@
         for (var j = 1; j < cells.length; j++) {
           var input = cells[j].querySelector("input");
           stats.push(parseInt(input ? input.value : 0) || 0);
-          // remplacer input par valeur affichée
-          cells[j].textContent = stats[j-1];
+          cells[j].textContent = stats[j-1]; // remplacer input par valeur
         }
         agents.push({
           nom: nom,
@@ -211,24 +199,29 @@
 
       var tableClone = table.cloneNode(true);
       var tableHTML = ajouterStylesTable(tableClone);
+      var emailHTML = `
+        <html>
+          <body>
+            <p><strong>EAP :</strong> ${eap}</p>
+            <p><strong>DATE :</strong> ${new Date().toLocaleDateString("fr-FR")}</p>
+            <p><strong>Résultat ${type} :</strong></p>
+            ${tableHTML}
+          </body>
+        </html>
+      `;
 
-      var destinataires;
-      if (type === "ICP") {
-        destinataires = ["florent.skirlo@sdis95.fr", ];
-      } else {
-        destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
-      }
-
-      for (var i = 0; i < destinataires.length; i++) {
+      var destinataires = ["florent.skirlo@sdis95.fr"];
+      destinataires.forEach(email => {
         emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-          to_email: destinataires[i],
+          to_email: email,
           eap_name: eap,
-          table_html: tableHTML,
+          table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
-          type_resultat: type
-        }).then(function() { console.log("Email envoyé"); })
-          .catch(function(err) { console.error("Erreur d'envoi email :", err.text); });
-      }
+          type_resultat: type,
+          agents: JSON.stringify(agents)
+        }).then(() => console.log(`Email ICP envoyé à ${email}`))
+          .catch(err => console.error("Erreur d'envoi email :", err.text));
+      });
 
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "/save-" + type.toLowerCase(), true);
