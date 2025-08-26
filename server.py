@@ -122,7 +122,7 @@ def consultation_icp_page():
 @login_required
 @role_required(["BFOR-TAV"])
 def consultation_gssi_page():
-    return render_template("ConsultageGSSIi.html")
+    return render_template("ConsultageGSSI.html")
     
 @app.route("/renseignement")
 @login_required
@@ -188,7 +188,7 @@ def save_icp():
 
 @app.route("/get-icp")
 @login_required
-@role_required(["EAP-TAV"])
+@role_required(["BFOR-TAV"])
 def get_icp():
     try:
         conn = get_db_connection()
@@ -260,7 +260,7 @@ def save_gssi():
 
 @app.route("/get-gssi")
 @login_required
-@role_required(["SOG-TAV"])
+@role_required(["BFOR-TAV"])
 def get_gssi():
     try:
         conn = get_db_connection()
