@@ -168,14 +168,18 @@
 
       const tableHTML = ajouterStylesTable(tableClone);
 
-      const emailHTML = `
-        <html>
-          <body>
-            <p><strong>SOG :</strong> ${sog}</p>
-            ${tableHTML}
-          </body>
-        </html>
-      `;
+      const today = new Date().toLocaleDateString("fr-FR");
+	  
+		const emailHTML = `
+		<html>
+		<body>
+			<p><strong>Résultat GSSI :</strong> Garde du ${today}</p>
+			<p><strong>SOG :</strong> ${sog}</p>
+			${tableHTML}
+		</body>
+		</html>
+		`;
+
 
       const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
 

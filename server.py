@@ -224,32 +224,39 @@ def save_gssi():
         conn = get_db_connection()
         c = conn.cursor()
 
-        sog = data.get("sog")  # <-- récupère le SOG envoyé depuis le front
+        date_str = data.get("date")
+        annee = date_str[:4]  # extraire l'année YYYY
 
         for agent in data["agents"]:
             nom = (agent.get("nom") or "").strip().upper()
-            c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
+
+            # Vérifier si un enregistrement existe pour le même nom + année
+            c.execute("""
+                SELECT id, psc, crochet, excavation
+                FROM gssi
+                WHERE nom=%s AND date LIKE %s
+            """, (nom, f"{annee}-%"))
             result = c.fetchone()
 
-            values = (
-                data.get("date"),
-                sog,  # <-- on remplit la colonne eap avec le SOG
-                nom,
-                bool(agent.get("psc")),
-                bool(agent.get("crochet")),
-                bool(agent.get("excavation"))
-            )
+            # Fusionner valeurs : garder les anciens 'true' si le front ne fournit rien
+            psc = bool(agent.get("psc")) if "psc" in agent else (result[1] if result else False)
+            crochet = bool(agent.get("crochet")) if "crochet" in agent else (result[2] if result else False)
+            excavation = bool(agent.get("excavation")) if "excavation" in agent else (result[3] if result else False)
+
+            values = (date_str, nom, psc, crochet, excavation)
 
             if result:
+                # UPDATE uniquement
                 c.execute("""
                     UPDATE gssi
-                    SET date=%s, eap=%s, nom=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
+                    SET date=%s, nom=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
                     WHERE id=%s
                 """, values + (result[0],))
             else:
+                # INSERT si pas d'enregistrement cette année
                 c.execute("""
-                    INSERT INTO gssi (date, eap, nom, psc, crochet, excavation, grh)
-                    VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                    INSERT INTO gssi (date, nom, psc, crochet, excavation, grh)
+                    VALUES (%s, %s, %s, %s, %s, FALSE)
                 """, values)
 
         conn.commit()
