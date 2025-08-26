@@ -176,8 +176,9 @@
         const cellsOriginal = rows[i].querySelectorAll("td");
         const cellsClone = row.querySelectorAll("td");
 
+        // Lecture des valeurs actuelles
         const agent = {
-          nom: cellsOriginal[0].querySelector("input")?.value.trim() || sog,
+          nom: cellsOriginal[0].querySelector("input")?.value.trim() || "",
           psc: cellsOriginal[1].querySelector("input")?.checked ? 1 : 0,
           crochet: cellsOriginal[2].querySelector("input")?.checked ? 1 : 0,
           excavation: cellsOriginal[3].querySelector("input")?.checked ? 1 : 0
