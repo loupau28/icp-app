@@ -78,96 +78,81 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     async function genererTableau() {
-  const container = document.getElementById('tableau-container');
-  const nombre = parseInt(document.getElementById('nombre').value);
-  const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
-  if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value);
+      const colonnes = ["NOM","FEU PSC SOUS ARI", "ECHELLE A CROCHET", "SAUVETAGE EN EXCAVATION"];
+      if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-  let html = "<table><thead><tr>";
-  colonnes.forEach(col => html += `<th>${col}</th>`);
-  html += "</tr></thead><tbody>";
+      let html = "<table><thead><tr>";
+      colonnes.forEach(col => html += `<th>${col}</th>`);
+      html += "</tr></thead><tbody>";
 
-  for (let i = 0; i < nombre; i++) {
-    html += "<tr>";
-    colonnes.forEach((col, j) => {
-      if (j === 0) {
-        html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%;"></td>`;
-      } else {
-        html += `<td><input type="checkbox"/></td>`;
+      // génération "vide" par défaut
+      for (let i = 0; i < nombre; i++) {
+        html += "<tr>";
+        colonnes.forEach((col, j) => {
+          if (j === 0) {
+            html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width: 100%;"></td>`;
+          } else {
+            html += `<td><input type="checkbox"/></td>`;
+          }
+        });
+        html += "</tr>";
       }
-    });
-    html += "</tr>";
-  }
-  html += "</tbody></table>";
+      html += "</tbody></table>";
 
-  container.innerHTML = html;
-  document.getElementById('send-button').style.display = 'block';
+      container.innerHTML = html;
+      document.getElementById('send-button').style.display = 'block';
 
-  const nomInputs = container.querySelectorAll('.nom-cell');
-  nomInputs.forEach(input => {
-    input.addEventListener('input', () => {
-      const start = input.selectionStart;
-      const end = input.selectionEnd;
-      input.value = input.value.toUpperCase();  // Majuscules
-      input.setSelectionRange(start, end);      // Maintient la position du curseur
-    });
+      const sog = document.getElementById("SOG-select").value;
+      if (!sog) return;
 
-    input.addEventListener('focus', () => {
-      setTimeout(() => {
-        const rect = input.getBoundingClientRect();
-        const offset = window.pageYOffset + rect.top - 100;
-        window.scrollTo({ top: offset, behavior: 'smooth' });
-      }, 200);
-    });
-  });
+      // 🔹 Lecture des anciens résultats depuis la BDD
+      try {
+        const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
+        if (res.ok) {
+          const anciens = await res.json();
+          const tbody = container.querySelector("tbody");
+          tbody.innerHTML = ""; // on écrase le tableau vide
 
-  // Préremplir anciens résultats
-  const eap = document.getElementById("SOG-select").value;
-  if (!eap) return;
-  try {
-    const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
-    if (res.ok) {
-      const anciens = await res.json();
-      const rows = container.querySelectorAll('tbody tr');
-      rows.forEach(row => {
-        const nomInput = row.querySelector('.nom-cell');
-        const nom = nomInput.value.trim().toUpperCase();
-        const ancien = anciens.find(a => a.nom.toUpperCase() === nom);
-        if (ancien) {
-          row.cells[1].querySelector("input").checked = ancien.psc === 1;
-          row.cells[2].querySelector("input").checked = ancien.crochet === 1;
-          row.cells[3].querySelector("input").checked = ancien.excavation === 1;
+          anciens.forEach(agent => {
+            tbody.innerHTML += `
+              <tr>
+                <td><input type="text" class="nom-cell" value="${agent.nom}" style="width:100%"></td>
+                <td><input type="checkbox" ${agent.psc ? "checked" : ""}></td>
+                <td><input type="checkbox" ${agent.crochet ? "checked" : ""}></td>
+                <td><input type="checkbox" ${agent.excavation ? "checked" : ""}></td>
+              </tr>
+            `;
+          });
         }
-      });
+      } catch (err) {
+        console.error("Erreur récupération anciens résultats :", err);
+      }
     }
-  } catch (err) {
-    console.error("Erreur récupération anciens résultats :", err);
-  }
-}
 
-document.getElementById("generer-btn").addEventListener("click", genererTableau);
+    document.getElementById("generer-btn").addEventListener("click", genererTableau);
 
-function ajouterStylesTable(table) {
-  table.style.borderCollapse = "collapse";
-  table.style.width = "100%";
-  table.querySelectorAll("th").forEach(th => {
-    th.style.border = "2px solid black";
-    th.style.padding = "10px";
-    th.style.textAlign = "center";
-    th.style.backgroundColor = "#f2f2f2";
-  });
-  table.querySelectorAll("td").forEach(td => {
-    td.style.border = "2px solid black";
-    td.style.padding = "10px";
-    td.style.textAlign = "center";
-    td.style.backgroundColor = "#f2f2f2";
-  });
-  return table.outerHTML;
-}
-
+    function ajouterStylesTable(table) {
+      table.style.borderCollapse = "collapse";
+      table.style.width = "100%";
+      table.querySelectorAll("th").forEach(th => {
+        th.style.border = "2px solid black";
+        th.style.padding = "10px";
+        th.style.textAlign = "center";
+        th.style.backgroundColor = "#f2f2f2";
+      });
+      table.querySelectorAll("td").forEach(td => {
+        td.style.border = "2px solid black";
+        td.style.padding = "10px";
+        td.style.textAlign = "center";
+        td.style.backgroundColor = "#f2f2f2";
+      });
+      return table.outerHTML;
+    }
 
     async function envoyerGSSIetSauvegarder() {
-      const eap = document.getElementById("SOG-select").value;
+      const sog = document.getElementById("SOG-select").value;
       const table = document.querySelector("table");
       const rows = document.querySelectorAll("tbody tr");
       const agents = [];
@@ -184,45 +169,22 @@ function ajouterStylesTable(table) {
         cells[3].innerText = excavation ? "Oui" : "Non";
       });
 
-      let anciensResultats = {};
-      try {
-        const res = await fetch(`/get-gssi?eap=${encodeURIComponent(eap)}`);
-        if (res.ok) {
-          const data = await res.json();
-          data.forEach(agent => {
-            anciensResultats[agent.nom.toUpperCase()] = agent;
-          });
-        }
-      } catch (err) {
-        console.error("Erreur récupération anciens résultats :", err);
-      }
-
-      const agentsFusionnes = agents.map(agent => {
-        const ancien = anciensResultats[agent.nom.toUpperCase()] || {};
-        return {
-          nom: agent.nom,
-          psc: agent.psc || ancien.psc || 0,
-          crochet: agent.crochet || ancien.crochet || 0,
-          excavation: agent.excavation || ancien.excavation || 0
-        };
-      });
-
       const tableClone = table.cloneNode(true);
       const tableHTML = ajouterStylesTable(tableClone);
 
       const destinataires = [
         "florent.skirlo@sdis95.fr",
-       "louisthom2810@gmail.com"
+        "louisthom2810@gmail.com"
       ];
 
       destinataires.forEach(email => {
         emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
           to_email: email,
-          eap_name: eap,
+          sog_name: sog,
           table_html: tableHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "GSSI",
-          agents: JSON.stringify(agentsFusionnes)
+          agents: JSON.stringify(agents)
         }).then(() => {
           console.log(`Email GSSI envoyé à ${email} !`);
         }).catch(err => {
@@ -234,9 +196,9 @@ function ajouterStylesTable(table) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eap: eap,
+          sog: sog,
           date: new Date().toISOString().slice(0, 10),
-          agents: agentsFusionnes
+          agents: agents
         })
       })
       .then(res => res.json())
