@@ -88,33 +88,25 @@
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     function genererTableau() {
-      var container = document.getElementById('tableau-container');
-      var nombre = parseInt(document.getElementById('nombre').value, 10);
+      const container = document.getElementById('tableau-container');
+      const nombre = parseInt(document.getElementById('nombre').value, 10);
       if (isNaN(nombre) || nombre < 1 || nombre > 12) return;
 
-      var colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
+      const colonnes = ["Nom", "POMPES", "TRACTIONS", "KILLY", "GAINAGE", "LUC LEGER", "SOUPLESSE"];
       container.innerHTML = '';
 
-      var table = document.createElement('table');
-
-      // THEAD
-      var thead = document.createElement('thead');
-      var trHead = document.createElement('tr');
-      colonnes.forEach(c => {
-        var th = document.createElement('th');
-        th.textContent = c;
-        trHead.appendChild(th);
-      });
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trHead = document.createElement('tr');
+      colonnes.forEach(c => { const th = document.createElement('th'); th.textContent = c; trHead.appendChild(th); });
       thead.appendChild(trHead);
       table.appendChild(thead);
 
-      // TBODY
-      var tbody = document.createElement('tbody');
-      for (var i = 0; i < nombre; i++) {
-        var tr = document.createElement('tr');
-        for (var j = 0; j < colonnes.length; j++) {
-          var td = document.createElement('td');
-
+      const tbody = document.createElement('tbody');
+      for (let i = 0; i < nombre; i++) {
+        const tr = document.createElement('tr');
+        for (let j = 0; j < colonnes.length; j++) {
+          const td = document.createElement('td');
           if (j === 0) {
             td.contentEditable = "true";
             td.spellcheck = false;
@@ -129,20 +121,17 @@
               sel.addRange(range);
             });
           } else {
-            var input = document.createElement('input');
+            const input = document.createElement('input');
             input.type = "number";
             input.min = "0";
             input.style.width = "80px";
             input.style.textAlign = "center";
-            input.pattern = "[0-9]*";
             td.appendChild(input);
           }
-
           tr.appendChild(td);
         }
         tbody.appendChild(tr);
       }
-
       table.appendChild(tbody);
       container.appendChild(table);
       document.getElementById('send-button').style.display = 'flex';
@@ -151,55 +140,48 @@
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
-      });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
+      table.querySelectorAll("th").forEach(th => { th.style.border="2px solid black"; th.style.padding="10px"; th.style.textAlign="center"; th.style.backgroundColor="#f2f2f2"; });
+      table.querySelectorAll("td").forEach(td => { td.style.border="2px solid black"; td.style.padding="10px"; td.style.textAlign="center"; td.style.backgroundColor="#f2f2f2"; });
       return table.outerHTML;
     }
 
     function envoyerICP() {
-      var eap = document.getElementById("EAP-select").value;
-      var table = document.querySelector("table");
+      const eap = document.getElementById("EAP-select").value;
+      const table = document.querySelector("table");
       if (!table) return;
 
-      var tableClone = table.cloneNode(true);
-      var agents = [];
+      const rows = table.querySelectorAll("tbody tr");
+      const agents = [];
 
-      tableClone.querySelectorAll("tbody tr").forEach(row => {
-        var cells = row.querySelectorAll("td");
-        var nom = cells[0].textContent.trim().toUpperCase();
-        var stats = [];
+      const tableClone = table.cloneNode(true);
+      tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
+        const cellsOriginal = rows[i].querySelectorAll("td");
+        const cellsClone = row.querySelectorAll("td");
 
-        for (var j = 1; j < cells.length; j++) {
-          var input = cells[j].querySelector("input");
-          var value = input ? parseInt(input.value) || 0 : parseInt(cells[j].textContent) || 0;
-          cells[j].textContent = value; // Remplace l'input par la valeur
-          stats.push(value);
-        }
+        const agent = { nom: cellsOriginal[0].textContent.trim().toUpperCase(), pompes:0, tractions:0, killy:0, gainage:0, luc_leger:0, souplesse:0 };
 
-        agents.push({
-          nom: nom,
-          pompes: stats[0],
-          tractions: stats[1],
-          killy: stats[2],
-          gainage: stats[3],
-          luc_leger: stats[4],
-          souplesse: stats[5]
+        cellsClone.forEach((cell, idx) => {
+          const input = cellsOriginal[idx].querySelector("input");
+          if (input) {
+            const val = parseInt(input.value) || 0;
+            cell.textContent = val;
+            if (idx === 1) agent.pompes = val;
+            if (idx === 2) agent.tractions = val;
+            if (idx === 3) agent.killy = val;
+            if (idx === 4) agent.gainage = val;
+            if (idx === 5) agent.luc_leger = val;
+            if (idx === 6) agent.souplesse = val;
+          } else {
+            const val = cell.textContent.trim();
+            if (idx === 0) agent.nom = val.toUpperCase();
+          }
         });
+
+        agents.push(agent);
       });
 
-      var tableHTML = ajouterStylesTable(tableClone);
-
-      var emailHTML = `
+      const tableHTML = ajouterStylesTable(tableClone);
+      const emailHTML = `
         <html>
           <body>
             <p><strong>EAP :</strong> ${eap}</p>
@@ -210,7 +192,8 @@
         </html>
       `;
 
-      var destinataires = ["florent.skirlo@sdis95.fr"];
+      const destinataires = ["florent.skirlo@sdis95.fr"];
+
       destinataires.forEach(email => {
         emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
           to_email: email,
@@ -219,18 +202,17 @@
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "ICP",
           agents: JSON.stringify(agents)
-        }).then(() => console.log(`Email ICP envoyé à ${email}`))
-          .catch(err => console.error("Erreur d'envoi email :", err.text));
+        }).catch(err => console.error("Erreur d'envoi email :", err.text));
       });
 
       fetch("/save-icp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Sauvegarde OK :", data))
-      .catch(err => console.error("Erreur de sauvegarde :", err));
+      }).catch(err => console.error("Erreur de sauvegarde :", err));
+
+      // Retour automatique à l'index
+      window.location.href = "/";
     }
   </script>
 </body>
