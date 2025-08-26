@@ -224,6 +224,8 @@ def save_gssi():
         conn = get_db_connection()
         c = conn.cursor()
 
+        sog = data.get("sog")  # <-- récupère le SOG envoyé depuis le front
+
         for agent in data["agents"]:
             nom = (agent.get("nom") or "").strip().upper()
             c.execute("SELECT id FROM gssi WHERE nom = %s", (nom,))
@@ -231,7 +233,7 @@ def save_gssi():
 
             values = (
                 data.get("date"),
-                data.get("eap"),
+                sog,  # <-- on remplit la colonne eap avec le SOG
                 nom,
                 bool(agent.get("psc")),
                 bool(agent.get("crochet")),
@@ -257,6 +259,7 @@ def save_gssi():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route("/get-gssi")
 @login_required

@@ -165,42 +165,30 @@
       const sog = document.getElementById("SOG-select").value;
       if (!sog) return;
 
-      const type_resultat = "GSSI";
-      const eap = type_resultat === "GSSI" ? "SOG" : "EAP";
-
       const table = document.querySelector("table");
       if (!table) return;
 
       const rows = table.querySelectorAll("tbody tr");
       const agents = [];
 
-      // Cloner et remplacer inputs/cases par valeurs
       const tableClone = table.cloneNode(true);
       tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
         const cellsOriginal = rows[i].querySelectorAll("td");
         const cellsClone = row.querySelectorAll("td");
 
-        // Créer l'objet agent
         const agent = {
-          nom: cellsOriginal[0].querySelector("input").value.trim(),
-          psc: 0,
-          crochet: 0,
-          excavation: 0
+          nom: cellsOriginal[0].querySelector("input")?.value.trim() || sog,
+          psc: cellsOriginal[1].querySelector("input")?.checked ? 1 : 0,
+          crochet: cellsOriginal[2].querySelector("input")?.checked ? 1 : 0,
+          excavation: cellsOriginal[3].querySelector("input")?.checked ? 1 : 0
         };
 
+        // Remplacer inputs par valeurs pour l'email
         cellsClone.forEach((cell, idx) => {
           const input = cellsOriginal[idx].querySelector("input");
           if (input) {
-            if (input.type === "checkbox") {
-              const checked = input.checked;
-              cell.textContent = checked ? "Oui" : "Non";
-              if (idx === 1) agent.psc = checked ? 1 : 0;
-              if (idx === 2) agent.crochet = checked ? 1 : 0;
-              if (idx === 3) agent.excavation = checked ? 1 : 0;
-            } else {
-              const val = input.value.trim();
-              cell.textContent = val;
-            }
+            if (input.type === "checkbox") cell.textContent = input.checked ? "Oui" : "Non";
+            else cell.textContent = input.value.trim();
           }
         });
 
@@ -208,12 +196,10 @@
       });
 
       const tableHTML = ajouterStylesTable(tableClone);
+
       const emailHTML = `
         <html>
           <body>
-            <p><strong>${eap} :</strong> ${sog}</p>
-            <p><strong>DATE :</strong> ${new Date().toLocaleDateString("fr-FR")}</p>
-            <p><strong>Résultat ${type_resultat} :</strong></p>
             ${tableHTML}
           </body>
         </html>
@@ -221,27 +207,29 @@
 
       const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
 
-      // Envoi EmailJS
-      for (const email of destinataires) {
-        await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
+      destinataires.forEach(email => {
+        emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
           to_email: email,
           sog_name: sog,
           table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
-          type_resultat: type_resultat,
-          eap: eap,
+          type_resultat: "GSSI",
           agents: JSON.stringify(agents)
-        }).catch(err => console.error("Erreur d'envoi email :", err.text));
-      }
+        }).then(() => console.log(`Email GSSI envoyé à ${email} !`))
+          .catch(err => console.error("Erreur d'envoi email :", err.text));
+      });
 
-      // Sauvegarde serveur
-      await fetch(`/save-gssi`, {
+      fetch(`/save-gssi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sog: sog, date: new Date().toISOString().slice(0, 10), agents: agents })
+        body: JSON.stringify({
+          sog: sog,
+          date: new Date().toISOString().slice(0, 10),
+          agents: agents
+        })
       }).catch(err => console.error("Erreur de sauvegarde :", err));
 
-      // Retour automatique à la page index après envoi
+      // Retour automatique à l'index
       window.location.href = "/";
     }
   </script>

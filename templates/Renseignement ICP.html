@@ -96,31 +96,28 @@
       container.innerHTML = '';
 
       const table = document.createElement('table');
+
+      // THEAD
       const thead = document.createElement('thead');
       const trHead = document.createElement('tr');
-      colonnes.forEach(c => { const th = document.createElement('th'); th.textContent = c; trHead.appendChild(th); });
+      colonnes.forEach(c => {
+        const th = document.createElement('th');
+        th.textContent = c;
+        trHead.appendChild(th);
+      });
       thead.appendChild(trHead);
       table.appendChild(thead);
 
+      // TBODY
       const tbody = document.createElement('tbody');
       for (let i = 0; i < nombre; i++) {
         const tr = document.createElement('tr');
-        for (let j = 0; j < colonnes.length; j++) {
+        colonnes.forEach((col, j) => {
           const td = document.createElement('td');
-          if (j === 0) {
+          if (j === 0) { // Nom
             td.contentEditable = "true";
             td.spellcheck = false;
-            td.addEventListener('input', function() {
-              const sel = window.getSelection();
-              const pos = sel.focusOffset;
-              this.textContent = this.textContent.toUpperCase();
-              const range = document.createRange();
-              range.setStart(this.firstChild || this, pos);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
-            });
-          } else {
+          } else { // Valeurs numériques
             const input = document.createElement('input');
             input.type = "number";
             input.min = "0";
@@ -129,7 +126,7 @@
             td.appendChild(input);
           }
           tr.appendChild(td);
-        }
+        });
         tbody.appendChild(tr);
       }
       table.appendChild(tbody);
@@ -140,13 +137,25 @@
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => { th.style.border="2px solid black"; th.style.padding="10px"; th.style.textAlign="center"; th.style.backgroundColor="#f2f2f2"; });
-      table.querySelectorAll("td").forEach(td => { td.style.border="2px solid black"; td.style.padding="10px"; td.style.textAlign="center"; td.style.backgroundColor="#f2f2f2"; });
+      table.querySelectorAll("th").forEach(th => {
+        th.style.border = "2px solid black";
+        th.style.padding = "10px";
+        th.style.textAlign = "center";
+        th.style.backgroundColor = "#f2f2f2";
+      });
+      table.querySelectorAll("td").forEach(td => {
+        td.style.border = "2px solid black";
+        td.style.padding = "10px";
+        td.style.textAlign = "center";
+        td.style.backgroundColor = "#f2f2f2";
+      });
       return table.outerHTML;
     }
 
     function envoyerICP() {
       const eap = document.getElementById("EAP-select").value;
+      if (!eap) return;
+
       const table = document.querySelector("table");
       if (!table) return;
 
@@ -158,35 +167,30 @@
         const cellsOriginal = rows[i].querySelectorAll("td");
         const cellsClone = row.querySelectorAll("td");
 
-        const agent = { nom: cellsOriginal[0].textContent.trim().toUpperCase(), pompes:0, tractions:0, killy:0, gainage:0, luc_leger:0, souplesse:0 };
+        const agent = {
+          nom: cellsOriginal[0].textContent.trim() || eap,
+          pompes: parseInt(cellsOriginal[1].querySelector("input")?.value || 0),
+          tractions: parseInt(cellsOriginal[2].querySelector("input")?.value || 0),
+          killy: parseInt(cellsOriginal[3].querySelector("input")?.value || 0),
+          gainage: parseInt(cellsOriginal[4].querySelector("input")?.value || 0),
+          luc_leger: parseInt(cellsOriginal[5].querySelector("input")?.value || 0),
+          souplesse: parseInt(cellsOriginal[6].querySelector("input")?.value || 0)
+        };
 
+        // Remplacer inputs par valeurs pour l'email
         cellsClone.forEach((cell, idx) => {
           const input = cellsOriginal[idx].querySelector("input");
-          if (input) {
-            const val = parseInt(input.value) || 0;
-            cell.textContent = val;
-            if (idx === 1) agent.pompes = val;
-            if (idx === 2) agent.tractions = val;
-            if (idx === 3) agent.killy = val;
-            if (idx === 4) agent.gainage = val;
-            if (idx === 5) agent.luc_leger = val;
-            if (idx === 6) agent.souplesse = val;
-          } else {
-            const val = cell.textContent.trim();
-            if (idx === 0) agent.nom = val.toUpperCase();
-          }
+          if (input) cell.textContent = input.value || "0";
         });
 
         agents.push(agent);
       });
 
       const tableHTML = ajouterStylesTable(tableClone);
+
       const emailHTML = `
         <html>
           <body>
-            <p><strong>EAP :</strong> ${eap}</p>
-            <p><strong>DATE :</strong> ${new Date().toLocaleDateString("fr-FR")}</p>
-            <p><strong>Résultat ICP :</strong></p>
             ${tableHTML}
           </body>
         </html>
@@ -195,20 +199,25 @@
       const destinataires = ["florent.skirlo@sdis95.fr"];
 
       destinataires.forEach(email => {
-        emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
+        emailjs.send("SOGTAV", "ENVOIEICP", {
           to_email: email,
           eap_name: eap,
           table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "ICP",
           agents: JSON.stringify(agents)
-        }).catch(err => console.error("Erreur d'envoi email :", err.text));
+        }).then(() => console.log(`Email ICP envoyé à ${email} !`))
+          .catch(err => console.error("Erreur d'envoi email :", err.text));
       });
 
-      fetch("/save-icp", {
+      fetch(`/save-icp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
+        body: JSON.stringify({
+          eap: eap,
+          date: new Date().toISOString().slice(0, 10),
+          agents: agents
+        })
       }).catch(err => console.error("Erreur de sauvegarde :", err));
 
       // Retour automatique à l'index
