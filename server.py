@@ -31,7 +31,7 @@ def init_db():
             id SERIAL PRIMARY KEY,
             date DATE,
             eap TEXT,
-            nom TEXT UNIQUE,
+            nom TEXT,
             pompes INTEGER DEFAULT 0,
             tractions INTEGER DEFAULT 0,
             killy INTEGER DEFAULT 0,
@@ -46,7 +46,7 @@ def init_db():
             id SERIAL PRIMARY KEY,
             date DATE,
             eap TEXT,
-            nom TEXT UNIQUE,
+            nom TEXT,
             psc BOOLEAN DEFAULT FALSE,
             crochet BOOLEAN DEFAULT FALSE,
             excavation BOOLEAN DEFAULT FALSE,
@@ -123,7 +123,7 @@ def consultation_icp_page():
 @role_required(["BFOR-TAV"])
 def consultation_gssi_page():
     return render_template("ConsultageGSSI.html")
-    
+
 @app.route("/renseignement")
 @login_required
 @role_required(["EAP-TAV"])
@@ -169,12 +169,14 @@ def save_icp():
             if result:
                 c.execute("""
                     UPDATE icp
-                    SET date=%s, eap=%s, nom=%s, pompes=%s, tractions=%s, killy=%s, gainage=%s, luc_leger=%s, souplesse=%s
+                    SET date=%s, eap=%s, nom=%s, pompes=%s, tractions=%s, killy=%s,
+                        gainage=%s, luc_leger=%s, souplesse=%s
                     WHERE id=%s
                 """, values + (result[0],))
             else:
                 c.execute("""
-                    INSERT INTO icp (date, eap, nom, pompes, tractions, killy, gainage, luc_leger, souplesse)
+                    INSERT INTO icp (date, eap, nom, pompes, tractions, killy,
+                                     gainage, luc_leger, souplesse)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """, values)
 
@@ -224,21 +226,21 @@ def save_gssi():
         conn = get_db_connection()
         c = conn.cursor()
 
-        date_str = data.get("date")
-        annee = date_str[:4]  # extraire l'année YYYY
+        date_str = data.get("date")       # ex: "2025-08-27"
+        annee = date_str[:4]              # -> "2025"
+        sog = data.get("eap") or data.get("sog")
 
         for agent in data["agents"]:
             nom = (agent.get("nom") or "").strip().upper()
 
-            # Vérifier si un enregistrement existe pour le même nom + année
+            # Vérifier si enregistrement existe pour même agent + SOG + année
             c.execute("""
                 SELECT id, psc, crochet, excavation
                 FROM gssi
-                WHERE nom=%s AND date LIKE %s
-            """, (nom, f"{annee}-%"))
+                WHERE nom=%s AND eap=%s AND date::text LIKE %s
+            """, (nom, sog, f"{annee}-%"))
             result = c.fetchone()
 
-            # Fusion : garder l’ancien "true" si déjà acquis
             if result:
                 old_psc, old_crochet, old_excavation = result[1], result[2], result[3]
                 psc = old_psc or bool(agent.get("psc"))
@@ -247,20 +249,19 @@ def save_gssi():
 
                 c.execute("""
                     UPDATE gssi
-                    SET date=%s, nom=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
+                    SET date=%s, eap=%s, nom=%s, psc=%s, crochet=%s, excavation=%s, grh=FALSE
                     WHERE id=%s
-                """, (date_str, nom, psc, crochet, excavation, result[0]))
+                """, (date_str, sog, nom, psc, crochet, excavation, result[0]))
 
             else:
-                # Si pas d’enregistrement cette année → insert direct
                 psc = bool(agent.get("psc"))
                 crochet = bool(agent.get("crochet"))
                 excavation = bool(agent.get("excavation"))
 
                 c.execute("""
-                    INSERT INTO gssi (date, nom, psc, crochet, excavation, grh)
-                    VALUES (%s, %s, %s, %s, %s, FALSE)
-                """, (date_str, nom, psc, crochet, excavation))
+                    INSERT INTO gssi (date, eap, nom, psc, crochet, excavation, grh)
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                """, (date_str, sog, nom, psc, crochet, excavation))
 
         conn.commit()
         c.close()
@@ -270,8 +271,6 @@ def save_gssi():
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
-
 @app.route("/get-gssi")
 @login_required
 @role_required(["BFOR-TAV"])
@@ -279,17 +278,10 @@ def get_gssi():
     try:
         conn = get_db_connection()
         c = conn.cursor()
-
-        # On récupère uniquement le dernier enregistrement par agent
-        c.execute("""
-            SELECT DISTINCT ON (nom) id, date, eap, nom, psc, crochet, excavation, grh
-            FROM gssi
-            ORDER BY nom, date DESC, id DESC
-        """)
+        c.execute("SELECT * FROM gssi")
         rows = c.fetchall()
         c.close()
         conn.close()
-
         results = [
             {
                 "id": r[0], "date": r[1], "eap": r[2], "nom": r[3],
@@ -298,11 +290,34 @@ def get_gssi():
             for r in rows
         ]
         return jsonify(results)
-
     except Exception as e:
         traceback.print_exc()
         return jsonify([])
 
+# -------------------- UPDATE GRH --------------------
+@app.route("/update-grh/<table>", methods=["POST"])
+@login_required
+@role_required(["BFOR-TAV"])
+def update_grh(table):
+    if table not in ["icp", "gssi"]:
+        return jsonify({"error": "Table invalide"}), 400
+    try:
+        data = request.get_json()
+        ids = data.get("ids", [])
+        if not ids:
+            return jsonify({"error": "Aucun ID fourni"}), 400
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        for id_val in ids:
+            c.execute(f"UPDATE {table} SET grh = TRUE WHERE id = %s", (id_val,))
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # -------------------- LANCEMENT --------------------
 if __name__ == "__main__":
