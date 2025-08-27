@@ -41,6 +41,51 @@
       display: none;
       margin-top: 20px;
     }
+    /* Popup notification */
+    #notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 25px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+      display: none;
+      z-index: 2000;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    #notification.success { background-color: #28a745; }
+    #notification.error { background-color: #dc3545; }
+    /* Loader overlay */
+    #loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+      display: none;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -67,15 +112,36 @@
   <div id="tableau-container"></div>
 
   <div id="send-button">
-    <button onclick="envoyerGSSIetSauvegarder()">ENVOYER GSSI</button>
+    <button id="envoyer-btn" onclick="envoyerGSSIetSauvegarder()">ENVOYER GSSI</button>
     <button onclick="window.location.href='/'">RETOUR</button>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification"></div>
+
+  <!-- Loader avec texte -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div>Envoi en cours...</div>
   </div>
 
   <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
-    // Remplace par ta clé publique (c'est déjà la bonne d'après toi)
     emailjs.init("ZJ5lL9lyhjYLHetb8");
+
+    function showNotification(message, type="success") {
+      const notif = document.getElementById("notification");
+      notif.textContent = message;
+      notif.className = type === "success" ? "success" : "error";
+      notif.style.display = "block";
+      setTimeout(() => { notif.style.display = "none"; }, 4000);
+    }
+
+    function toggleLoader(show) {
+      document.getElementById("loader").style.display = show ? "flex" : "none";
+      document.getElementById("envoyer-btn").disabled = show;
+    }
 
     async function genererTableau() {
       const container = document.getElementById('tableau-container');
@@ -90,20 +156,16 @@
       try {
         const res = await fetch(`/get-gssi?sog=${encodeURIComponent(sog)}`);
         if (res.ok) anciens = await res.json();
-      } catch (err) {
-        console.error("Erreur récupération anciens résultats :", err);
-      }
+      } catch (err) { console.error("Erreur récupération anciens résultats :", err); }
 
       let html = "<table><thead><tr>";
-      colonnes.forEach(col => {
-        html += `<th>${col}</th>`;
-      });
+      colonnes.forEach(col => { html += `<th>${col}</th>`; });
       html += "</tr></thead><tbody>";
 
       for (let i = 0; i < Math.max(nombre, anciens.length); i++) {
         const agent = anciens[i] || {};
         html += "<tr>";
-        html += `<td><input type="text" class="nom-cell" spellcheck="false" style="width:100%;" value="${agent.nom || ''}"></td>`;
+        html += `<td><input type="text" spellcheck="false" style="width:100%;" value="${agent.nom || ''}"></td>`;
         html += `<td><input type="checkbox" ${agent.psc ? 'checked' : ''}></td>`;
         html += `<td><input type="checkbox" ${agent.crochet ? 'checked' : ''}></td>`;
         html += `<td><input type="checkbox" ${agent.excavation ? 'checked' : ''}></td>`;
@@ -119,21 +181,16 @@
 
     async function envoyerGSSIetSauvegarder() {
       const sog = document.getElementById("SOG-select").value;
-      if (!sog) {
-        alert("Veuillez sélectionner un SOG !");
-        return;
-      }
+      if (!sog) { showNotification("Veuillez sélectionner un SOG !","error"); return; }
 
       const table = document.querySelector("table");
-      if (!table) {
-        alert("Aucun tableau généré !");
-        return;
-      }
+      if (!table) { showNotification("Aucun tableau généré !","error"); return; }
 
       const rows = table.querySelectorAll("tbody tr");
       const agents = [];
 
-      // Cloner le tableau et remplacer inputs par valeurs
+      toggleLoader(true);
+
       const tableClone = table.cloneNode(true);
       tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
         const cellsOriginal = rows[i].querySelectorAll("td");
@@ -142,15 +199,13 @@
         cellsClone.forEach((cell, idx) => {
           const input = cellsOriginal[idx].querySelector("input");
           if (input) {
-            if (input.type === "checkbox") {
-              cell.textContent = input.checked ? "Oui" : "Non";
-            } else {
-              cell.textContent = input.value.trim();
-            }
+            cell.textContent = input.type === "checkbox" ? (input.checked ? "Oui" : "Non") : input.value.trim();
           }
         });
 
         agents.push({
+          sog: sog,
+          date: new Date().toISOString().split("T")[0],
           nom: cellsOriginal[0].querySelector("input").value.trim(),
           psc: cellsOriginal[1].querySelector("input").checked ? 1 : 0,
           crochet: cellsOriginal[2].querySelector("input").checked ? 1 : 0,
@@ -158,7 +213,19 @@
         });
       });
 
-      // Ajouter styles
+      // Fusion doublons
+      const merged = {};
+      agents.forEach(a => {
+        if (!merged[a.nom]) merged[a.nom] = { ...a };
+        else {
+          if (a.date > merged[a.nom].date) { merged[a.nom].date = a.date; merged[a.nom].sog = a.sog; }
+          merged[a.nom].psc = merged[a.nom].psc || a.psc;
+          merged[a.nom].crochet = merged[a.nom].crochet || a.crochet;
+          merged[a.nom].excavation = merged[a.nom].excavation || a.excavation;
+        }
+      });
+      const agentsFusionnes = Object.values(merged);
+
       function ajouterStylesTable(table) {
         table.style.borderCollapse = "collapse";
         table.style.width = "100%";
@@ -170,18 +237,15 @@
         });
         return table.outerHTML;
       }
-
       const tableHTML = ajouterStylesTable(tableClone);
 
-      // Date
       const today = new Date();
       const todayISO = today.toISOString().split("T")[0];
       const todayFR = today.toLocaleDateString("fr-FR");
 
-      // Données EmailJS : GSSI = 2 destinataires
       const emailData = {
         to_email: "florent.skirlo@sdis95.fr, louisthom2810@gmail.com",
-        from_name: sog,
+        sog: sog,
         message_html: tableHTML,
         date_envoi: todayFR,
         type_resultat: "GSSI"
@@ -189,36 +253,33 @@
 
       try {
         await emailjs.send("SOGTAV", "ENVOIEICPGSSI", emailData);
-        console.log("Email GSSI envoyé avec succès !");
+        showNotification("✅ Email envoyé avec succès !","success");
       } catch (err) {
         console.error("Erreur EmailJS :", err);
-        alert("Erreur lors de l'envoi du mail. Vérifiez la console.");
+        showNotification("❌ Erreur lors de l'envoi du mail.","error");
+        toggleLoader(false);
         return;
       }
 
-      // Sauvegarde en BDD
       try {
         const res = await fetch("/save-gssi", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eap: sog,
-            date: todayISO,
-            agents: agents
-          })
+          body: JSON.stringify({ eap: sog, date: todayISO, agents: agentsFusionnes })
         });
         const data = await res.json();
         if (data.status === "ok") {
-          console.log("Sauvegarde GSSI OK");
-          window.location.href = "/";
+          showNotification("✅ Données sauvegardées avec succès !","success");
+          setTimeout(() => { window.location.href = "/"; }, 1500);
         } else {
-          console.error("Erreur sauvegarde :", data);
-          alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+          showNotification("❌ Erreur lors de la sauvegarde.","error");
         }
       } catch (err) {
-        console.error("Erreur fetch sauvegarde :", err);
-        alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+        console.error("Erreur fetch :", err);
+        showNotification("❌ Erreur lors de la sauvegarde.","error");
       }
+
+      toggleLoader(false);
     }
   </script>
 </body>
