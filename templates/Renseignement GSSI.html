@@ -71,8 +71,10 @@
     <button onclick="window.location.href='/'">RETOUR</button>
   </div>
 
+  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
+    // Remplace par ta clé publique (c'est déjà la bonne d'après toi)
     emailjs.init("ZJ5lL9lyhjYLHetb8");
 
     async function genererTableau() {
@@ -92,13 +94,12 @@
         console.error("Erreur récupération anciens résultats :", err);
       }
 
-      let html = "<table style='border-collapse:collapse;width:100%;'><thead><tr>";
+      let html = "<table><thead><tr>";
       colonnes.forEach(col => {
-        html += `<th style='border:2px solid black;padding:10px;text-align:center;background-color:#f2f2f2;'>${col}</th>`;
+        html += `<th>${col}</th>`;
       });
       html += "</tr></thead><tbody>";
 
-      // Fusion des anciens et ajout de lignes vides si nécessaire
       for (let i = 0; i < Math.max(nombre, anciens.length); i++) {
         const agent = anciens[i] || {};
         html += "<tr>";
@@ -116,130 +117,109 @@
 
     document.getElementById("generer-btn").addEventListener("click", genererTableau);
 
-    function ajouterStylesTable(table) {
-      table.style.borderCollapse = "collapse";
-      table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
-      });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
-      return table.outerHTML;
-    }
-
-async function envoyerGSSIetSauvegarder() {
-  const sog = document.getElementById("SOG-select").value;
-  if (!sog) {
-    alert("Veuillez sélectionner un SOG !");
-    return;
-  }
-
-  const table = document.querySelector("table");
-  if (!table) {
-    alert("Aucun tableau généré !");
-    return;
-  }
-
-  const rows = table.querySelectorAll("tbody tr");
-  const agents = [];
-
-  // Cloner le tableau et remplacer inputs par valeurs
-  const tableClone = table.cloneNode(true);
-  tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
-    const cellsOriginal = rows[i].querySelectorAll("td");
-    const cellsClone = row.querySelectorAll("td");
-
-    cellsClone.forEach((cell, idx) => {
-      const input = cellsOriginal[idx].querySelector("input");
-      if (input) {
-        if (input.type === "checkbox") {
-          cell.textContent = input.checked ? "Oui" : "Non";
-        } else {
-          cell.textContent = input.value.trim();
-        }
+    async function envoyerGSSIetSauvegarder() {
+      const sog = document.getElementById("SOG-select").value;
+      if (!sog) {
+        alert("Veuillez sélectionner un SOG !");
+        return;
       }
-    });
 
-    agents.push({
-      nom: cellsOriginal[0].querySelector("input").value.trim(),
-      psc: cellsOriginal[1].querySelector("input").checked ? 1 : 0,
-      crochet: cellsOriginal[2].querySelector("input").checked ? 1 : 0,
-      excavation: cellsOriginal[3].querySelector("input").checked ? 1 : 0
-    });
-  });
+      const table = document.querySelector("table");
+      if (!table) {
+        alert("Aucun tableau généré !");
+        return;
+      }
 
-  // Ajouter styles au tableau pour email
-  function ajouterStylesTable(table) {
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
-    table.querySelectorAll("th, td").forEach(cell => {
-      cell.style.border = "2px solid black";
-      cell.style.padding = "10px";
-      cell.style.textAlign = "center";
-      cell.style.backgroundColor = "#f2f2f2";
-    });
-    return table.outerHTML;
-  }
+      const rows = table.querySelectorAll("tbody tr");
+      const agents = [];
 
-  const tableHTML = ajouterStylesTable(tableClone);
+      // Cloner le tableau et remplacer inputs par valeurs
+      const tableClone = table.cloneNode(true);
+      tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
+        const cellsOriginal = rows[i].querySelectorAll("td");
+        const cellsClone = row.querySelectorAll("td");
 
-  // Date
-  const today = new Date();
-  const todayISO = today.toISOString().split("T")[0]; // YYYY-MM-DD
-  const todayFR = today.toLocaleDateString("fr-FR");
+        cellsClone.forEach((cell, idx) => {
+          const input = cellsOriginal[idx].querySelector("input");
+          if (input) {
+            if (input.type === "checkbox") {
+              cell.textContent = input.checked ? "Oui" : "Non";
+            } else {
+              cell.textContent = input.value.trim();
+            }
+          }
+        });
 
-  // Préparer les champs pour EmailJS
-  const emailData = {
-    label: "SOG",
-    name: sog,
-    message_html: tableHTML,
-    date_envoi: todayFR,
-    type_resultat: "GSSI"
-  };
+        agents.push({
+          nom: cellsOriginal[0].querySelector("input").value.trim(),
+          psc: cellsOriginal[1].querySelector("input").checked ? 1 : 0,
+          crochet: cellsOriginal[2].querySelector("input").checked ? 1 : 0,
+          excavation: cellsOriginal[3].querySelector("input").checked ? 1 : 0
+        });
+      });
 
-  // Envoi EmailJS (les destinataires sont configurés dans le template)
-  try {
-    await emailjs.send("SOGTAV", "ENVOIEICPGSSI", emailData);
-    console.log("Email GSSI envoyé avec succès !");
-  } catch (err) {
-    console.error("Erreur EmailJS :", err);
-    alert("Erreur lors de l'envoi du mail. Vérifiez la console.");
-    return;
-  }
+      // Ajouter styles
+      function ajouterStylesTable(table) {
+        table.style.borderCollapse = "collapse";
+        table.style.width = "100%";
+        table.querySelectorAll("th, td").forEach(cell => {
+          cell.style.border = "2px solid black";
+          cell.style.padding = "10px";
+          cell.style.textAlign = "center";
+          cell.style.backgroundColor = "#f2f2f2";
+        });
+        return table.outerHTML;
+      }
 
-  // Sauvegarde BDD
-  try {
-    const res = await fetch("/save-gssi", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eap: sog,
-        date: todayISO,
-        agents: agents
-      })
-    });
-    const data = await res.json();
-    if (data.status === "ok") {
-      console.log("Sauvegarde GSSI OK");
-      window.location.href = "/";
-    } else {
-      console.error("Erreur sauvegarde :", data);
-      alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+      const tableHTML = ajouterStylesTable(tableClone);
+
+      // Date
+      const today = new Date();
+      const todayISO = today.toISOString().split("T")[0];
+      const todayFR = today.toLocaleDateString("fr-FR");
+
+      // Données EmailJS : GSSI = 2 destinataires
+      const emailData = {
+        to_email: "florent.skirlo@sdis95.fr, louisthom2810@gmail.com",
+        from_name: sog,
+        message_html: tableHTML,
+        date_envoi: todayFR,
+        type_resultat: "GSSI"
+      };
+
+      try {
+        await emailjs.send("SOGTAV", "ENVOIEICPGSSI", emailData);
+        console.log("Email GSSI envoyé avec succès !");
+      } catch (err) {
+        console.error("Erreur EmailJS :", err);
+        alert("Erreur lors de l'envoi du mail. Vérifiez la console.");
+        return;
+      }
+
+      // Sauvegarde en BDD
+      try {
+        const res = await fetch("/save-gssi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eap: sog,
+            date: todayISO,
+            agents: agents
+          })
+        });
+        const data = await res.json();
+        if (data.status === "ok") {
+          console.log("Sauvegarde GSSI OK");
+          window.location.href = "/";
+        } else {
+          console.error("Erreur sauvegarde :", data);
+          alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+        }
+      } catch (err) {
+        console.error("Erreur fetch sauvegarde :", err);
+        alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+      }
     }
-  } catch (err) {
-    console.error("Erreur fetch sauvegarde :", err);
-    alert("Erreur lors de la sauvegarde. Vérifiez la console.");
-  }
-}
-
-
   </script>
 </body>
 </html>
