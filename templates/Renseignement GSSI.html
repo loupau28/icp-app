@@ -136,10 +136,16 @@
 
 async function envoyerGSSIetSauvegarder() {
   const sog = document.getElementById("SOG-select").value;
-  if (!sog) return;
+  if (!sog) {
+    alert("Veuillez sélectionner un SOG !");
+    return;
+  }
 
   const table = document.querySelector("table");
-  if (!table) return;
+  if (!table) {
+    alert("Aucun tableau généré !");
+    return;
+  }
 
   const rows = table.querySelectorAll("tbody tr");
   const agents = [];
@@ -169,49 +175,70 @@ async function envoyerGSSIetSauvegarder() {
     });
   });
 
+  // Ajouter styles au tableau pour email
+  function ajouterStylesTable(table) {
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+    table.querySelectorAll("th, td").forEach(cell => {
+      cell.style.border = "2px solid black";
+      cell.style.padding = "10px";
+      cell.style.textAlign = "center";
+      cell.style.backgroundColor = "#f2f2f2";
+    });
+    return table.outerHTML;
+  }
+
   const tableHTML = ajouterStylesTable(tableClone);
 
-  // Date au format ISO pour la BDD
-  const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+  // Date
+  const today = new Date();
+  const todayISO = today.toISOString().split("T")[0]; // YYYY-MM-DD
+  const todayFR = today.toLocaleDateString("fr-FR");
 
-  // Label calculé pour EmailJS
-  const label = "SOG";
+  // Préparer les champs pour EmailJS
+  const emailData = {
+    label: "SOG",
+    name: sog,
+    message_html: tableHTML,
+    date_envoi: todayFR,
+    type_resultat: "GSSI"
+  };
 
-  // HTML du mail
-  const emailHTML = tableHTML;
-
-  // Objet du mail
-  const objet = `Résultat GSSI : Garde du ${new Date().toLocaleDateString("fr-FR")}`;
-
-  // Envoi EmailJS
-  const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
-  for (const email of destinataires) {
-    await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-      label: label,        // "SOG"
-      name: sog,           // Nom du SOG
-      message_html: emailHTML,
-      date_envoi: new Date().toLocaleDateString("fr-FR"),
-      type_resultat: "GSSI"
-    });
+  // Envoi EmailJS (les destinataires sont configurés dans le template)
+  try {
+    await emailjs.send("SOGTAV", "ENVOIEICPGSSI", emailData);
+    console.log("Email GSSI envoyé avec succès !");
+  } catch (err) {
+    console.error("Erreur EmailJS :", err);
+    alert("Erreur lors de l'envoi du mail. Vérifiez la console.");
+    return;
   }
 
   // Sauvegarde BDD
-  fetch(`/save-gssi`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      eap: sog,            // correspond à SOG dans la BDD
-      date: today,
-      agents: agents
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log("Sauvegarde OK :", data);
-    window.location.href = "/";
-  })
-  .catch(err => console.error("Erreur de sauvegarde :", err));
+  try {
+    const res = await fetch("/save-gssi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eap: sog,
+        date: todayISO,
+        agents: agents
+      })
+    });
+    const data = await res.json();
+    if (data.status === "ok") {
+      console.log("Sauvegarde GSSI OK");
+      window.location.href = "/";
+    } else {
+      console.error("Erreur sauvegarde :", data);
+      alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+    }
+  } catch (err) {
+    console.error("Erreur fetch sauvegarde :", err);
+    alert("Erreur lors de la sauvegarde. Vérifiez la console.");
+  }
 }
+
 
   </script>
 </body>
