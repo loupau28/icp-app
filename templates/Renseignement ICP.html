@@ -76,9 +76,10 @@
       animation: spin 1s linear infinite;
       margin-bottom: 15px;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #notification {
+      margin-top: 15px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -106,7 +107,7 @@
   </div>
 
   <div id="tableau-container"></div>
-  
+
   <div id="send-button">
     <button id="envoyer-btn" onclick="envoyerICP()">ENVOYER LES ICP</button>
     <button onclick="window.location.href='/'">RETOUR</button>
@@ -117,6 +118,8 @@
     <div>Envoi en cours...</div>
   </div>
 
+  <div id="notification"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
@@ -124,6 +127,12 @@
     function toggleLoader(show) {
       document.getElementById("loader").style.display = show ? "flex" : "none";
       document.getElementById("envoyer-btn").disabled = show;
+    }
+
+    function showNotification(message, type) {
+      const notif = document.getElementById("notification");
+      notif.textContent = message;
+      notif.style.color = type === "success" ? "green" : "red";
     }
 
     function genererTableau() {
@@ -154,6 +163,7 @@
       }
       table.appendChild(tbody);
       container.appendChild(table);
+
       document.getElementById('send-button').style.display = 'flex';
     }
 
@@ -167,17 +177,18 @@
 
     async function envoyerICP() {
       const eap = document.getElementById("EAP-select").value;
-      if (!eap) return;
+      if (!eap) { showNotification("Veuillez sélectionner un EAP.", "error"); return; }
 
       const table = document.querySelector("table");
-      if (!table) return;
+      if (!table) { showNotification("Aucun tableau généré.", "error"); return; }
 
       toggleLoader(true);
+      showNotification("", "");
 
       const rows = table.querySelectorAll("tbody tr");
       const agents = [];
-
       const tableClone = table.cloneNode(true);
+
       tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
         const cellsOriginal = rows[i].querySelectorAll("td");
         const cellsClone = row.querySelectorAll("td");
@@ -208,31 +219,27 @@
           to_email: "louisthom2810@gmail.com",
           sog: "",
           eap_name: eap,
-          table_html: emailHTML,
+          message_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "ICP",
           agents: JSON.stringify(agents)
         });
-        console.log("✅ Email ICP envoyé avec succès !");
-      } catch(err) {
-        console.error("❌ Erreur EmailJS :", err);
-        toggleLoader(false);
-        return;
-      }
+        showNotification("✅ Email envoyé avec succès !", "success");
 
-      try {
         await fetch(`/save-icp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
         });
         console.log("✅ ICP sauvegardé en BDD");
-      } catch(err) {
-        console.error("❌ Erreur de sauvegarde :", err);
-      }
 
-      toggleLoader(false);
-      window.location.href = "/";
+        setTimeout(() => { window.location.href = "/"; }, 1500);
+      } catch(err) {
+        console.error("Erreur :", err);
+        showNotification("❌ Erreur lors de l'envoi ou de la sauvegarde.", "error");
+      } finally {
+        toggleLoader(false);
+      }
     }
   </script>
 </body>
