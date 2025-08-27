@@ -5,82 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ICP</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: url('/static/FOND.png') no-repeat center center;
-      background-size: cover;
-      padding: 20px;
-      color: red;
-    }
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-      width: 100%;
-      min-width: 700px;
-      table-layout: fixed;
-    }
-    th, td {
-      border: 2px solid black;
-      padding: 10px;
-      text-align: center;
-      background-color: #f2f2f2;
-    }
-    td[contenteditable="true"] {
-      background-color: #fff;
-      text-align: left;
-    }
-    input[type="number"] {
-      width: 80px;
-      padding: 5px;
-      text-align: center;
-    }
-    input, button, select {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-    }
-    label {
-      font-weight: bold;
-      margin-right: 10px;
-    }
-    #tableau-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-    #send-button {
-      display: none;
-      margin-top: 20px;
-      gap: 10px;
-    }
+    body { font-family: Arial, sans-serif; background: url('/static/FOND.png') no-repeat center center; background-size: cover; padding: 20px; color: red; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; min-width: 700px; table-layout: fixed; }
+    th, td { border: 2px solid black; padding: 10px; text-align: center; background-color: #f2f2f2; }
+    td[contenteditable="true"] { background-color: #fff; text-align: left; }
+    input[type="number"] { width: 80px; padding: 5px; text-align: center; }
+    input, button, select { margin: 10px 0; padding: 10px; font-size: 16px; }
+    label { font-weight: bold; margin-right: 10px; }
+    #tableau-container { width: 100%; overflow-x: auto; }
+    #send-button { display: none; margin-top: 20px; gap: 10px; }
     #loader {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 1500;
-      display: none;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 1500; display: none; color: white; font-size: 18px; font-weight: bold;
     }
-    .spinner {
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #3498db;
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 15px;
-    }
+    .spinner { border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 15px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #notification {
-      margin-top: 15px;
-      font-weight: bold;
-    }
+    #notification { margin-top: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -211,31 +152,36 @@
         agents.push(agent);
       });
 
-      const tableHTML = ajouterStylesTable(tableClone);
-      const emailHTML = `<html><body><p>EAP/SOG: ${eap}</p><p>DATE: ${new Date().toLocaleDateString("fr-FR")}</p>${tableHTML}</body></html>`;
+      const tableHTML = ajouterStylesTable(tableClone); // juste le tableau pour message_html
 
       try {
         await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
           to_email: "louisthom2810@gmail.com",
           sog: "",
           eap_name: eap,
-          message_html: emailHTML,
+          message_html: tableHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "ICP",
           agents: JSON.stringify(agents)
         });
         showNotification("✅ Email envoyé avec succès !", "success");
 
-        await fetch(`/save-icp`, {
+        // Sauvegarde BDD
+        const res = await fetch("/save-icp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
         });
-        console.log("✅ ICP sauvegardé en BDD");
+        const data = await res.json();
+        if (data.status === "ok") {
+          showNotification("✅ Données sauvegardées avec succès !", "success");
+          setTimeout(() => { window.location.href = "/"; }, 1500);
+        } else {
+          showNotification("❌ Erreur lors de la sauvegarde.", "error");
+        }
 
-        setTimeout(() => { window.location.href = "/"; }, 1500);
       } catch(err) {
-        console.error("Erreur :", err);
+        console.error(err);
         showNotification("❌ Erreur lors de l'envoi ou de la sauvegarde.", "error");
       } finally {
         toggleLoader(false);
