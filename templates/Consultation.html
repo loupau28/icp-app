@@ -1,50 +1,65 @@
-<!-- templates/Consultation.html -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consultation</title>
-	 <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: url('/static/FOND.png') no-repeat center center fixed;
-      background-size: cover;
-      padding: 20px;
-      margin: 0;
-      color: red;
-    }
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('/static/FOND.png') no-repeat center center fixed;
+            background-size: cover;
+            padding: 40px;
+            color: red;
+            text-align: center;
+        }
 
-    /* Ajustements pour petits écrans */
-    @media (max-width: 768px) {
-      body {
-        background-size: contain;
-        padding: 10px;
-      }
+        h2 {
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            color: darkred;
+            text-shadow: 1px 1px white;
+        }
 
-      table {
-        font-size: 14px;
-      }
+        #menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
 
-      select, input, button {
-        font-size: 14px;
-        padding: 8px;
-      }
-    }
+        button {
+            padding: 15px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: white;
+            border: 2px solid red;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+        }
 
-    h2 { margin-bottom: 20px; }
-    label { font-weight: bold; margin-right: 10px; }
-    select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
+        button:hover {
+            background-color: red;
+            color: white;
+            transform: scale(1.05);
+        }
 
-    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
-    th, td { border: 2px solid black; padding: 10px; text-align: center; }
-    td { background-color: #f2f2f2; }
-
-    .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
-  </style>
+        /* Responsive */
+        @media (max-width: 450px) {
+            h2 { font-size: 2em; }
+            button { font-size: 16px; padding: 12px 25px; }
+        }
+    </style>
 </head>
 <body>
-    <p>CHOISSIEZ CE QUE VOUS VOULEZ CONSULTE :</p>
-    <button onclick="window.location.href='/consultation/icp'">ICP</button>
-    <button onclick="window.location.href='/consultation/gssi'">GSSI</button>
+
+    <h2>CONSULTATION</h2>
+
+    <div id="menu">
+        <button onclick="window.location.href='/consultation/icp'">ICP</button>
+        <button onclick="window.location.href='/consultation/gssi'">GSSI</button>
+    </div>
+
 </body>
 </html>
