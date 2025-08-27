@@ -1,28 +1,176 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Login</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f2f2f2; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-container { background-color: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 10px; margin: 5px 0 15px 0; border-radius: 4px; border: 1px solid #ccc; }
-        button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background-color: #45a049; }
-        .error { color: red; text-align: center; margin-bottom: 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion</title>
+<style>
+/* ===== Fond et body ===== */
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url('https://source.unsplash.com/1600x900/?firefighter,training') no-repeat center center fixed;
+    background-size: cover;
+    position: relative;
+}
+body::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 0;
+}
+
+/* ===== Formulaire ===== */
+.login-container {
+    position: relative;
+    z-index: 1;
+    background-color: rgba(255,255,255,0.95);
+    padding: 40px 35px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-30px);
+    animation: fadeIn 1s forwards;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.login-container:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+}
+@keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+    margin-bottom: 30px;
+    color: #333;
+    letter-spacing: 1px;
+}
+
+/* ===== Inputs & select ===== */
+select, input {
+    width: 100%;
+    padding: 14px 12px;
+    margin: 12px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+select:hover, input:hover {
+    transform: scale(1.02);
+}
+select:focus, input:focus {
+    outline: none;
+    border-color: #5563DE;
+    box-shadow: 0 0 10px rgba(85,99,222,0.5);
+}
+
+/* ===== Mot de passe avec toggle ===== */
+.password-container {
+    position: relative;
+}
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #555;
+    transition: color 0.3s ease;
+}
+.toggle-password:hover { color: #5563DE; }
+
+/* ===== Bouton ===== */
+button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg,#5563DE,#7380F3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+button:hover {
+    background: linear-gradient(135deg,#4350b3,#5563DE);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+button:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ===== Erreur ===== */
+.error {
+    color: red;
+    margin-bottom: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Animation select ===== */
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: #fff url('data:image/svg+xml;utf8,<svg fill="%23333" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 450px) {
+    .login-container { padding: 30px 25px; }
+}
+</style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Connexion</h2>
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-        <form method="POST">
-            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
-            <input type="password" name="password" placeholder="Mot de passe" required>
-            <button type="submit">Se connecter</button>
-        </form>
-    </div>
+
+<div class="login-container">
+    <h2>Connexion</h2>
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <select name="username" required>
+            <option value="" disabled selected>Choisir votre rôle</option>
+            <option value="SOG-TAV">SOG-TAV</option>
+            <option value="EAP-TAV">EAP-TAV</option>
+            <option value="BFOR-TAV">BFOR-TAV</option>
+        </select>
+
+        <div class="password-container">
+            <input type="password" id="password" name="password" placeholder="Mot de passe" required>
+            <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+        </div>
+
+        <button type="submit">Se connecter</button>
+    </form>
+</div>
+
+<script>
+function togglePassword() {
+    const pwd = document.getElementById('password');
+    pwd.type = pwd.type === 'password' ? 'text' : 'password';
+}
+</script>
+
 </body>
 </html>

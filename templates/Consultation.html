@@ -4,10 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <title>Consultation</title>
+	 <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('/static/FOND.png') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      margin: 0;
+      color: red;
+    }
+
+    /* Ajustements pour petits écrans */
+    @media (max-width: 768px) {
+      body {
+        background-size: contain;
+        padding: 10px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      select, input, button {
+        font-size: 14px;
+        padding: 8px;
+      }
+    }
+
+    h2 { margin-bottom: 20px; }
+    label { font-weight: bold; margin-right: 10px; }
+    select, input, button { margin: 10px 5px; padding: 10px; font-size: 16px; }
+
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 2px solid black; padding: 10px; text-align: center; }
+    td { background-color: #f2f2f2; }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
-    <h1>Page de Consultation</h1>
-    <p>Choisissez le type de consultation :</p>
+    <p>CHOISSIEZ CE QUE VOUS VOULEZ CONSULTE :</p>
     <button onclick="window.location.href='/consultation/icp'">ICP</button>
     <button onclick="window.location.href='/consultation/gssi'">GSSI</button>
 </body>
