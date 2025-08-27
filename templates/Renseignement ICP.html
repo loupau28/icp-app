@@ -52,6 +52,35 @@
       margin-top: 20px;
       gap: 10px;
     }
+    /* Loader overlay */
+    #loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+      display: none;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -78,14 +107,26 @@
   </div>
 
   <div id="tableau-container"></div>
-  <div id="send-button" style="display: flex;">
-    <button onclick="envoyerICP()">ENVOYER LES ICP</button>
+  
+  <div id="send-button">
+    <button id="envoyer-btn" onclick="envoyerICP()">ENVOYER LES ICP</button>
     <button onclick="window.location.href='/'">RETOUR</button>
+  </div>
+
+  <!-- Loader avec texte -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div>Envoi en cours...</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>
     emailjs.init("ZJ5lL9lyhjYLHetb8");
+
+    function toggleLoader(show) {
+      document.getElementById("loader").style.display = show ? "flex" : "none";
+      document.getElementById("envoyer-btn").disabled = show;
+    }
 
     function genererTableau() {
       const container = document.getElementById('tableau-container');
@@ -97,67 +138,45 @@
 
       const table = document.createElement('table');
 
-      // THEAD
       const thead = document.createElement('thead');
       const trHead = document.createElement('tr');
-      colonnes.forEach(c => {
-        const th = document.createElement('th');
-        th.textContent = c;
-        trHead.appendChild(th);
-      });
+      colonnes.forEach(c => { const th = document.createElement('th'); th.textContent = c; trHead.appendChild(th); });
       thead.appendChild(trHead);
       table.appendChild(thead);
 
-      // TBODY
       const tbody = document.createElement('tbody');
       for (let i = 0; i < nombre; i++) {
         const tr = document.createElement('tr');
         colonnes.forEach((col, j) => {
           const td = document.createElement('td');
-          if (j === 0) { // Nom
-            td.contentEditable = "true";
-            td.spellcheck = false;
-          } else { // Valeurs numériques
-            const input = document.createElement('input');
-            input.type = "number";
-            input.min = "0";
-            input.style.width = "80px";
-            input.style.textAlign = "center";
-            td.appendChild(input);
-          }
+          if (j === 0) { td.contentEditable = "true"; td.spellcheck = false; }
+          else { const input = document.createElement('input'); input.type="number"; input.min="0"; input.style.width="80px"; input.style.textAlign="center"; td.appendChild(input); }
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
       }
       table.appendChild(tbody);
       container.appendChild(table);
-      document.getElementById('send-button').style.display = 'flex';
+
+      document.getElementById('send-button').style.display = 'flex'; // Affiche les boutons après génération
     }
 
     function ajouterStylesTable(table) {
       table.style.borderCollapse = "collapse";
       table.style.width = "100%";
-      table.querySelectorAll("th").forEach(th => {
-        th.style.border = "2px solid black";
-        th.style.padding = "10px";
-        th.style.textAlign = "center";
-        th.style.backgroundColor = "#f2f2f2";
-      });
-      table.querySelectorAll("td").forEach(td => {
-        td.style.border = "2px solid black";
-        td.style.padding = "10px";
-        td.style.textAlign = "center";
-        td.style.backgroundColor = "#f2f2f2";
-      });
+      table.querySelectorAll("th").forEach(th => { th.style.border="2px solid black"; th.style.padding="10px"; th.style.textAlign="center"; th.style.backgroundColor="#f2f2f2"; });
+      table.querySelectorAll("td").forEach(td => { td.style.border="2px solid black"; td.style.padding="10px"; td.style.textAlign="center"; td.style.backgroundColor="#f2f2f2"; });
       return table.outerHTML;
     }
 
-    function envoyerICP() {
+    async function envoyerICP() {
       const eap = document.getElementById("EAP-select").value;
       if (!eap) return;
 
       const table = document.querySelector("table");
       if (!table) return;
+
+      toggleLoader(true);
 
       const rows = table.querySelectorAll("tbody tr");
       const agents = [];
@@ -177,7 +196,6 @@
           souplesse: parseInt(cellsOriginal[6].querySelector("input")?.value || 0)
         };
 
-        // Remplacer inputs par valeurs pour l'email
         cellsClone.forEach((cell, idx) => {
           const input = cellsOriginal[idx].querySelector("input");
           if (input) cell.textContent = input.value || "0";
@@ -188,39 +206,30 @@
 
       const tableHTML = ajouterStylesTable(tableClone);
 
-      const emailHTML = `
-        <html>
-          <body>
-            ${tableHTML}
-          </body>
-        </html>
-      `;
+      const emailHTML = `<html><body><p>EAP: ${eap}</p><p>DATE: ${new Date().toLocaleDateString("fr-FR")}</p>${tableHTML}</body></html>`;
 
-      const destinataires = ["florent.skirlo@sdis95.fr"];
-
-      destinataires.forEach(email => {
-        emailjs.send("SOGTAV", "ENVOIEICP", {
-          to_email: email,
+      try {
+        await emailjs.send("SOGTAV", "ENVOIEICP", {
+          to_email: "louisthom2810@gmail.com",
+		  sog: "",
           eap_name: eap,
           table_html: emailHTML,
           date_envoi: new Date().toLocaleDateString("fr-FR"),
           type_resultat: "ICP",
           agents: JSON.stringify(agents)
-        }).then(() => console.log(`Email ICP envoyé à ${email} !`))
-          .catch(err => console.error("Erreur d'envoi email :", err.text));
-      });
+        });
+        console.log("Email ICP envoyé !");
+      } catch(err) { console.error("Erreur d'envoi email :", err); }
 
-      fetch(`/save-icp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eap: eap,
-          date: new Date().toISOString().slice(0, 10),
-          agents: agents
-        })
-      }).catch(err => console.error("Erreur de sauvegarde :", err));
+      try {
+        await fetch(`/save-icp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eap: eap, date: new Date().toISOString().slice(0,10), agents: agents })
+        });
+      } catch(err) { console.error("Erreur de sauvegarde :", err); }
 
-      // Retour automatique à l'index
+      toggleLoader(false);
       window.location.href = "/";
     }
   </script>
