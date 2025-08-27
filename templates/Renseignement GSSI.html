@@ -134,7 +134,7 @@
       return table.outerHTML;
     }
 
- async function envoyerGSSIetSauvegarder() {
+async function envoyerGSSIetSauvegarder() {
   const sog = document.getElementById("SOG-select").value;
   if (!sog) return;
 
@@ -173,15 +173,18 @@
   const tableHTML = ajouterStylesTable(tableClone);
   const today = new Date().toLocaleDateString("fr-FR");
 
+  // Corps du mail = SOG + tableau
   const emailHTML = `
     <html>
       <body>
-        <p><strong>Résultat GSSI :</strong> Garde du ${today}</p>
-        <p><strong>SOG :</strong> ${sog}</p>
+        <p><strong>${sog}</strong></p>
         ${tableHTML}
       </body>
     </html>
   `;
+
+  // Objet du mail
+  const objet = `Résultat GSSI : Garde du ${today}`;
 
   // Envoi EmailJS
   const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
@@ -189,7 +192,8 @@
     await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
       to_email: email,
       sog_name: sog,
-      table_html: emailHTML,
+      message_html: emailHTML,
+      subject: objet,
       date_envoi: today,
       type_resultat: "GSSI",
       agents: JSON.stringify(agents)
@@ -202,7 +206,7 @@
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       sog: sog,
-      date: today, // envoyer la date au format dd/mm/yyyy ou yyyy-mm-dd
+      date: today,
       agents: agents
     })
   })
