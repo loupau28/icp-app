@@ -226,14 +226,14 @@ def save_gssi():
         conn = get_db_connection()
         c = conn.cursor()
 
-        date_str = data.get("date")       # ex: "2025-08-27"
-        annee = date_str[:4]              # -> "2025"
-        sog = data.get("eap") or data.get("sog")
+        date_str = data.get("date")          # ex: "2025-08-27"
+        annee = date_str[:4]                 # -> "2025"
+        sog = data.get("eap")                # le SOG envoyé depuis le front
 
         for agent in data["agents"]:
             nom = (agent.get("nom") or "").strip().upper()
 
-            # Vérifier si enregistrement existe pour même agent + SOG + année
+            # Vérifier si enregistrement existe pour ce nom + SOG + année
             c.execute("""
                 SELECT id, psc, crochet, excavation
                 FROM gssi
@@ -243,6 +243,8 @@ def save_gssi():
 
             if result:
                 old_psc, old_crochet, old_excavation = result[1], result[2], result[3]
+
+                # Fusionner : garder anciens TRUE si front n’envoie rien
                 psc = old_psc or bool(agent.get("psc"))
                 crochet = old_crochet or bool(agent.get("crochet"))
                 excavation = old_excavation or bool(agent.get("excavation"))
@@ -267,6 +269,7 @@ def save_gssi():
         c.close()
         conn.close()
         return jsonify({"status": "ok"})
+
     except Exception as e:
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500

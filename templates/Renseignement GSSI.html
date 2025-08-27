@@ -144,7 +144,7 @@ async function envoyerGSSIetSauvegarder() {
   const rows = table.querySelectorAll("tbody tr");
   const agents = [];
 
-  // Cloner le tableau pour l'email et remplacer inputs par valeurs
+  // Cloner le tableau et remplacer inputs par valeurs
   const tableClone = table.cloneNode(true);
   tableClone.querySelectorAll("tbody tr").forEach((row, i) => {
     const cellsOriginal = rows[i].querySelectorAll("td");
@@ -154,8 +154,7 @@ async function envoyerGSSIetSauvegarder() {
       const input = cellsOriginal[idx].querySelector("input");
       if (input) {
         if (input.type === "checkbox") {
-          const checked = input.checked;
-          cell.textContent = checked ? "Oui" : "Non";
+          cell.textContent = input.checked ? "Oui" : "Non";
         } else {
           cell.textContent = input.value.trim();
         }
@@ -171,41 +170,37 @@ async function envoyerGSSIetSauvegarder() {
   });
 
   const tableHTML = ajouterStylesTable(tableClone);
-  const today = new Date().toLocaleDateString("fr-FR");
 
-  // Corps du mail = SOG + tableau
-  const emailHTML = `
-    <html>
-      <body>
-        <p><strong>${sog}</strong></p>
-        ${tableHTML}
-      </body>
-    </html>
-  `;
+  // Date au format ISO pour la BDD
+  const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+  // Label calculé pour EmailJS
+  const label = "SOG";
+
+  // HTML du mail
+  const emailHTML = tableHTML;
 
   // Objet du mail
-  const objet = `Résultat GSSI : Garde du ${today}`;
+  const objet = `Résultat GSSI : Garde du ${new Date().toLocaleDateString("fr-FR")}`;
 
   // Envoi EmailJS
   const destinataires = ["florent.skirlo@sdis95.fr", "louisthom2810@gmail.com"];
   for (const email of destinataires) {
     await emailjs.send("SOGTAV", "ENVOIEICPGSSI", {
-      to_email: email,
-      sog_name: sog,
+      label: label,        // "SOG"
+      name: sog,           // Nom du SOG
       message_html: emailHTML,
-      subject: objet,
-      date_envoi: today,
-      type_resultat: "GSSI",
-      agents: JSON.stringify(agents)
+      date_envoi: new Date().toLocaleDateString("fr-FR"),
+      type_resultat: "GSSI"
     });
   }
 
-  // Sauvegarde serveur
+  // Sauvegarde BDD
   fetch(`/save-gssi`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      sog: sog,
+      eap: sog,            // correspond à SOG dans la BDD
       date: today,
       agents: agents
     })
@@ -213,7 +208,7 @@ async function envoyerGSSIetSauvegarder() {
   .then(res => res.json())
   .then(data => {
     console.log("Sauvegarde OK :", data);
-    window.location.href = "/"; // retour automatique
+    window.location.href = "/";
   })
   .catch(err => console.error("Erreur de sauvegarde :", err));
 }
