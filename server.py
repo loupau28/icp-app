@@ -123,18 +123,30 @@ def consultation_icp_page():
 @role_required(["BFOR-TAV"])
 def consultation_gssi_page():
     return render_template("ConsultageGSSI.html")
-
+    
 @app.route("/renseignement")
+@login_required
+@role_required(["SOG-TAV"])
+def consultation_page():
+    return render_template("renseignement.html")
+
+@app.route("/renseignementicp")
 @login_required
 @role_required(["EAP-TAV"])
 def consultation_icp():
     return render_template("Renseignement ICP.html")
 
-@app.route("/gssi")
+@app.route("/Renseignement/gssi")
 @login_required
 @role_required(["SOG-TAV"])
 def consultation_gssi():
     return render_template("Renseignement GSSI.html")
+    
+@app.route("/Renseignement/pepari")
+@login_required
+@role_required(["SOG-TAV"])
+def consultation_gssi():
+    return render_template("Renseignement PEPARI.html")
 
 # -------------------- ICP --------------------
 @app.route("/save-icp", methods=["POST"])
