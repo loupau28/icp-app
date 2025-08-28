@@ -127,25 +127,25 @@ def consultation_gssi_page():
 @app.route("/renseignement")
 @login_required
 @role_required(["SOG-TAV"])
-def consultation_page():
+def renseignement_page():
     return render_template("renseignement.html")
 
 @app.route("/renseignementicp")
 @login_required
 @role_required(["EAP-TAV"])
-def consultation_icp():
+def renseignement_icp():
     return render_template("Renseignement ICP.html")
 
 @app.route("/Renseignement/gssi")
 @login_required
 @role_required(["SOG-TAV"])
-def consultation_gssi():
+def renseignement_gssi_page():
     return render_template("Renseignement GSSI.html")
     
 @app.route("/Renseignement/pepari")
 @login_required
 @role_required(["SOG-TAV"])
-def consultation_gssi():
+def renseignement_pepari_page():
     return render_template("Renseignement PEPARI.html")
 
 # -------------------- ICP --------------------
